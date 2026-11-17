@@ -14,7 +14,7 @@ const VARIATIONS = [
 ];
 
 function miniPitch(ctx, w, h) {
-  ctx.fillStyle = '#1e3822';
+  ctx.fillStyle = '#221B49';
   ctx.fillRect(0, 0, w, h);
   ctx.strokeStyle = 'rgba(255,255,255,0.35)';
   ctx.lineWidth = 1;
@@ -88,7 +88,7 @@ export function createMinimap(canvas, titleEl) {
     if (v === 'homeHeat' || v === 'awayHeat') {
       const team = v === 'homeHeat' ? 0 : 1;
       const heat = data.heat[team === 0 ? 'home' : 'away'];
-      const rgb = team === 0 ? [255, 180, 80] : [120, 180, 255];
+      const rgb = team === 0 ? [200, 97, 209] : [104, 189, 249];
       if (heat && heat.max > 0) {
         const cols = heat.cols;
         const rows = heat.rows;
@@ -115,7 +115,7 @@ export function createMinimap(canvas, titleEl) {
     } else if (v === 'homeShots' || v === 'awayShots') {
       const team = v === 'homeShots' ? 0 : 1;
       const shots = data.shots[team === 0 ? 'home' : 'away'];
-      const rgb = team === 0 ? '255,255,255' : '120,180,255';
+      const rgb = team === 0 ? '255,255,255' : '104,189,249';
       const goalX = team === 0 ? 52.5 : -52.5;
       for (const s of shots) {
         const [sx, sy] = toMini(s.x, s.y, W, H);
@@ -135,7 +135,7 @@ export function createMinimap(canvas, titleEl) {
     } else if (v === 'homePasses' || v === 'awayPasses') {
       const team = v === 'homePasses' ? 0 : 1;
       const passes = data.passes[team === 0 ? 'home' : 'away'];
-      const rgb = team === 0 ? '255,255,255' : '120,180,255';
+      const rgb = team === 0 ? '255,255,255' : '104,189,249';
       for (const p of passes) {
         const [sx, sy] = toMini(p.x, p.y, W, H);
         ctx.beginPath();
@@ -147,7 +147,7 @@ export function createMinimap(canvas, titleEl) {
     } else if (v === 'homeAttacks' || v === 'awayAttacks') {
       const team = v === 'homeAttacks' ? 0 : 1;
       const attacks = data.attacks[team === 0 ? 'home' : 'away'];
-      const rgb = team === 0 ? '255,200,80' : '120,180,255';
+      const rgb = team === 0 ? '229,168,232' : '104,189,249';
       for (const a of attacks) {
         const [sx, sy] = toMini(a.x, a.y, W, H);
         ctx.beginPath();
@@ -159,7 +159,7 @@ export function createMinimap(canvas, titleEl) {
     } else if (v === 'homeTackles' || v === 'awayTackles') {
       const team = v === 'homeTackles' ? 0 : 1;
       const tackles = data.tackles[team === 0 ? 'home' : 'away'];
-      const rgb = team === 0 ? '255,100,100' : '255,100,100';
+      const rgb = '214,58,63';
       for (const t of tackles) {
         const [sx, sy] = toMini(t.x, t.y, W, H);
         ctx.beginPath();
@@ -171,7 +171,7 @@ export function createMinimap(canvas, titleEl) {
     } else if (v === 'homeRecoveries' || v === 'awayRecoveries') {
       const team = v === 'homeRecoveries' ? 0 : 1;
       const recs = data.recoveries[team === 0 ? 'home' : 'away'];
-      const rgb = team === 0 ? '100,255,150' : '100,255,150';
+      const rgb = '155,217,149';
       for (const r of recs) {
         const [sx, sy] = toMini(r.x, r.y, W, H);
         ctx.beginPath();
@@ -183,7 +183,7 @@ export function createMinimap(canvas, titleEl) {
     } else if (v === 'homeProgressive' || v === 'awayProgressive') {
       const team = v === 'homeProgressive' ? 0 : 1;
       const progs = data.progressive[team === 0 ? 'home' : 'away'];
-      const rgb = team === 0 ? '255,220,100' : '255,220,100';
+      const rgb = team === 0 ? '229,168,232' : '229,168,232';
       for (const p of progs) {
         const [sx, sy] = toMini(p.x, p.y, W, H);
         ctx.beginPath();
@@ -211,8 +211,8 @@ export function createMinimap(canvas, titleEl) {
             const cy = 2 + (r + 0.5) * ch;
             const rad = Math.max(cw, ch) * 1.6;
             const g = ctx.createRadialGradient(cx, cy, 0, cx, cy, rad);
-            g.addColorStop(0, `rgba(255,180,80,${a})`);
-            g.addColorStop(1, 'rgba(255,180,80,0)');
+            g.addColorStop(0, `rgba(200,97,209,${a})`);
+            g.addColorStop(1, 'rgba(200,97,209,0)');
             ctx.fillStyle = g;
             ctx.fillRect(cx - rad, cy - rad, rad * 2, rad * 2);
           }
@@ -233,8 +233,8 @@ export function createMinimap(canvas, titleEl) {
             const cy = 2 + (r + 0.5) * ch;
             const rad = Math.max(cw, ch) * 1.6;
             const g = ctx.createRadialGradient(cx, cy, 0, cx, cy, rad);
-            g.addColorStop(0, `rgba(120,180,255,${a})`);
-            g.addColorStop(1, 'rgba(120,180,255,0)');
+            g.addColorStop(0, `rgba(104,189,249,${a})`);
+            g.addColorStop(1, 'rgba(104,189,249,0)');
             ctx.fillStyle = g;
             ctx.fillRect(cx - rad, cy - rad, rad * 2, rad * 2);
           }
@@ -246,7 +246,7 @@ export function createMinimap(canvas, titleEl) {
       const teamKey = team === 0 ? 'home' : 'away';
       const tackles = data.tackles[teamKey] || [];
       const recs = data.recoveries[teamKey] || [];
-      const rgb = team === 0 ? '255,100,100' : '255,100,100';
+      const rgb = '214,58,63';
       for (const t of tackles) {
         const [sx, sy] = toMini(t.x, t.y, W, H);
         ctx.beginPath();
@@ -258,14 +258,14 @@ export function createMinimap(canvas, titleEl) {
         const [sx, sy] = toMini(r.x, r.y, W, H);
         ctx.beginPath();
         ctx.arc(sx, sy, 2, 0, Math.PI * 2);
-        ctx.fillStyle = 'rgba(100,255,150,0.7)';
+        ctx.fillStyle = 'rgba(155,217,149,0.7)';
         ctx.fill();
       }
       titleEl.textContent = (team === 0 ? 'Home' : 'Away') + ' defence';
     } else if (v === 'homeShotMap' || v === 'awayShotMap') {
       const team = v === 'homeShotMap' ? 0 : 1;
       const shots = data.shots[team === 0 ? 'home' : 'away'];
-      const rgb = team === 0 ? '255,255,255' : '120,180,255';
+      const rgb = team === 0 ? '255,255,255' : '104,189,249';
       const goalX = team === 0 ? 52.5 : -52.5;
       for (const s of shots) {
         const [sx, sy] = toMini(s.x, s.y, W, H);
@@ -285,7 +285,7 @@ export function createMinimap(canvas, titleEl) {
     } else if (v === 'playerHeat') {
       const heat = data.playerHeat;
       const shirt = data.chosenPlayerShirt;
-      const rgb = [180, 120, 255];
+      const rgb = [142, 95, 236];
       if (heat && heat.max > 0) {
         const cols = heat.cols;
         const rows = heat.rows;

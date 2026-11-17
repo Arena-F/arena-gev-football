@@ -203,11 +203,11 @@ test('unit webs draw defenders and midfielders in different colours', () => {
   assert.ok(snap.links.some((l) => l.unit === 'def'));
   assert.ok(snap.links.some((l) => l.unit === 'mid'));
   drawPassingNetwork(proxy, toScreen, snap, 1, 0);
-  assert.ok(strokes.some((s) => s.includes('56,214,196')), `def teal drawn, got ${strokes}`);
-  assert.ok(strokes.some((s) => s.includes('167,139,250')), `mid violet drawn, got ${strokes}`);
-  assert.equal(NETWORK_UNIT_CSS.def, '#38d6c4');
-  assert.equal(NETWORK_UNIT_CSS.mid, '#a78bfa');
-  assert.equal(NETWORK_UNIT_CSS.fwd, '#fb7185');
+  assert.ok(strokes.some((s) => s.includes('82,180,245')), `def primary drawn, got ${strokes}`);
+  assert.ok(strokes.some((s) => s.includes('142,95,236')), `mid purple drawn, got ${strokes}`);
+  assert.equal(NETWORK_UNIT_CSS.def, '#52B4F5');
+  assert.equal(NETWORK_UNIT_CSS.mid, '#8E5FEC');
+  assert.equal(NETWORK_UNIT_CSS.fwd, '#C861D1');
 });
 
 test('unit link strength steps up with pass count', () => {

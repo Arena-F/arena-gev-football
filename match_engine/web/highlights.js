@@ -4,7 +4,7 @@
 // with positions captured at event time, replayed for ~5 s with a fade.
 
 function miniPitch(ctx, w, h) {
-  ctx.fillStyle = '#1e3822';
+  ctx.fillStyle = '#221B49';
   ctx.fillRect(0, 0, w, h);
   ctx.strokeStyle = 'rgba(255,255,255,0.35)';
   ctx.lineWidth = 1;
@@ -66,7 +66,7 @@ export function createHighlightTracker(canvas, titleEl) {
       const [sx, sy] = toMini(p.x, p.y, W, H);
       ctx.beginPath();
       ctx.arc(sx, sy, 2.2, 0, Math.PI * 2);
-      ctx.fillStyle = p.team === 0 ? 'rgba(242,242,242,0.85)' : 'rgba(47,129,247,0.85)';
+      ctx.fillStyle = p.team === 0 ? 'rgba(255,255,255,0.85)' : 'rgba(82,180,245,0.85)';
       ctx.fill();
     }
     const blink = 0.5 + 0.5 * Math.sin((now || 0) * 5);
@@ -81,7 +81,7 @@ export function createHighlightTracker(canvas, titleEl) {
       if (isGoal) {
         const goalX = hl.ball.x >= 0 ? 52.5 : -52.5;
         const [gx, gy] = toMini(goalX, hl.ball.y * 0.3, W, H);
-        ctx.strokeStyle = `rgba(255,234,0,${0.7 + 0.3 * blink})`;
+        ctx.strokeStyle = `rgba(200,97,209,${0.7 + 0.3 * blink})`;
         ctx.lineWidth = 2;
         ctx.beginPath();
         ctx.moveTo(bx, by);
@@ -94,12 +94,12 @@ export function createHighlightTracker(canvas, titleEl) {
         ctx.lineTo(gx - 6 * Math.cos(ang - 0.4), gy - 6 * Math.sin(ang - 0.4));
         ctx.lineTo(gx - 6 * Math.cos(ang + 0.4), gy - 6 * Math.sin(ang + 0.4));
         ctx.closePath();
-        ctx.fillStyle = `rgba(255,234,0,${0.9})`;
+        ctx.fillStyle = `rgba(200,97,209,${0.9})`;
         ctx.fill();
       } else if (isShot) {
         const goalX = hl.ball.x >= 0 ? 52.5 : -52.5;
         const [gx, gy] = toMini(goalX, 0, W, H);
-        ctx.strokeStyle = `rgba(255,200,80,${0.4 + 0.3 * blink})`;
+        ctx.strokeStyle = `rgba(229,168,232,${0.4 + 0.3 * blink})`;
         ctx.lineWidth = 1.2;
         ctx.setLineDash([3, 3]);
         ctx.beginPath();
@@ -111,7 +111,7 @@ export function createHighlightTracker(canvas, titleEl) {
         // save burst ring
         ctx.beginPath();
         ctx.arc(bx, by, 6 + 3 * blink, 0, Math.PI * 2);
-        ctx.strokeStyle = `rgba(100,255,150,${0.9 - 0.4 * blink})`;
+        ctx.strokeStyle = `rgba(155,217,149,${0.9 - 0.4 * blink})`;
         ctx.lineWidth = 2;
         ctx.stroke();
       } else if (isCorner) {
@@ -122,7 +122,7 @@ export function createHighlightTracker(canvas, titleEl) {
         ctx.moveTo(bx, by);
         ctx.lineTo(bx, by - 8);
         ctx.stroke();
-        ctx.fillStyle = `rgba(255,200,80,${0.8})`;
+        ctx.fillStyle = `rgba(229,168,232,${0.8})`;
         ctx.beginPath();
         ctx.moveTo(bx, by - 8);
         ctx.lineTo(bx + 6, by - 5);
@@ -133,18 +133,18 @@ export function createHighlightTracker(canvas, titleEl) {
       // ball dot
       ctx.beginPath();
       ctx.arc(bx, by, 3, 0, Math.PI * 2);
-      ctx.fillStyle = '#ffea00';
+      ctx.fillStyle = '#FFFFFF';
       ctx.fill();
       // pulse ring
       ctx.beginPath();
       ctx.arc(bx, by, 5 + 2 * blink, 0, Math.PI * 2);
-      ctx.strokeStyle = `rgba(255,234,0,${0.5 - 0.3 * blink})`;
+      ctx.strokeStyle = `rgba(200,97,209,${0.5 - 0.3 * blink})`;
       ctx.lineWidth = 1;
       ctx.stroke();
     }
     // label
-    ctx.fillStyle = hl.team === 0 ? '#f2f2f2' : '#2f81f7';
-    ctx.font = 'bold 10px ui-sans-serif, system-ui, sans-serif';
+    ctx.fillStyle = hl.team === 0 ? '#FFFFFF' : '#52B4F5';
+    ctx.font = 'bold 10px Manrope, ui-sans-serif, system-ui, sans-serif';
     ctx.textAlign = 'left';
     ctx.textBaseline = 'top';
     const mm = String(Math.floor(hl.t / 60)).padStart(2, '0');

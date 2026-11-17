@@ -6,18 +6,18 @@
 
 import { ZONE_COLS, ZONE_ROWS, zoneWorldRect } from './dribbles.js';
 
-const GREEN = 'rgba(80, 220, 140, 0.92)';
-const RED = 'rgba(255, 92, 92, 0.95)';
-const BLUE = 'rgba(110, 180, 255, 0.95)';
+const GREEN = 'rgba(82, 180, 76, 0.92)';
+const RED = 'rgba(214, 58, 63, 0.95)';
+const BLUE = 'rgba(82, 180, 245, 0.95)';
 
 /**
- * Zone fill colour: hue carries *activity* (green quiet → yellow moderate →
- * red hot, per the brief), opacity carries *outcome* (a zone that keeps
- * failing reads faint, a zone that succeeds reads solid).
+ * Zone fill colour: hue carries *activity* (quiet violet → hot Arena pink),
+ * opacity carries *outcome* (a zone that keeps failing reads faint, a zone
+ * that succeeds reads solid).
  */
 export function zoneFillStyle(attempts, maxAttempts, success, baseAlpha = 0.55) {
   const freq = Math.min(1, (attempts / Math.max(1, maxAttempts)));
-  const hue = 120 - 120 * freq;
+  const hue = 265 + 50 * freq;
   const a = success == null ? baseAlpha * 0.55 : 0.18 + (baseAlpha - 0.18) * success;
   return `hsla(${hue.toFixed(0)}, 82%, 52%, ${a.toFixed(3)})`;
 }
@@ -95,7 +95,7 @@ export function drawDribbleLayer(ctx, toScreen, stats, team, opts = {}) {
   }
 
   // 2. Zone classification grid over the whole pitch.
-  ctx.strokeStyle = 'rgba(233, 242, 255, 0.16)';
+  ctx.strokeStyle = 'rgba(239, 248, 254, 0.16)';
   ctx.lineWidth = 1;
   for (let row = 0; row < ZONE_ROWS; row++) {
     for (let col = 0; col < ZONE_COLS; col++) {
@@ -109,12 +109,12 @@ export function drawDribbleLayer(ctx, toScreen, stats, team, opts = {}) {
 
   // 3. Zone ids, so the panel and the pitch can refer to the same cell.
   // A dark halo keeps them legible over the heat washes.
-  ctx.fillStyle = 'rgba(233, 242, 255, 0.72)';
-  ctx.font = '9px ui-sans-serif, system-ui, sans-serif';
+  ctx.fillStyle = 'rgba(239, 248, 254, 0.72)';
+  ctx.font = '9px Manrope, ui-sans-serif, system-ui, sans-serif';
   ctx.textAlign = 'left';
   ctx.textBaseline = 'top';
   ctx.save();
-  ctx.shadowColor = 'rgba(8, 12, 18, 0.85)';
+  ctx.shadowColor = 'rgba(23, 20, 55, 0.85)';
   ctx.shadowBlur = 3;
   for (let z = 1; z <= stats.zones.length; z++) {
     const rect = zoneWorldRect(z, team);
@@ -132,8 +132,8 @@ export function drawDribbleLayer(ctx, toScreen, stats, team, opts = {}) {
     ctx.lineWidth = width;
     ctx.strokeRect(sx, syTop, ex - sx, syBottom - syTop);
   };
-  if (opts.hoverZone) outline(opts.hoverZone, 'rgba(47, 129, 247, 0.75)', 1.5);
-  if (opts.selectedZone) outline(opts.selectedZone, 'rgba(255, 190, 90, 0.95)', 2);
+  if (opts.hoverZone) outline(opts.hoverZone, 'rgba(82, 180, 245, 0.75)', 1.5);
+  if (opts.selectedZone) outline(opts.selectedZone, 'rgba(200, 97, 209, 0.95)', 2);
 
   // 5. Attempt markers. Numbers are the marker's position in *this* list —
   // derived here, never stored on the shared dribble objects, so other
@@ -167,8 +167,8 @@ export function drawDribbleLayer(ctx, toScreen, stats, team, opts = {}) {
         ctx.stroke();
       }
       if (numbered) {
-        ctx.fillStyle = 'rgba(233, 242, 255, 0.8)';
-        ctx.font = '8px ui-sans-serif, system-ui, sans-serif';
+        ctx.fillStyle = 'rgba(239, 248, 254, 0.8)';
+        ctx.font = '8px Manrope, ui-sans-serif, system-ui, sans-serif';
         ctx.textAlign = 'left';
         ctx.textBaseline = 'bottom';
         ctx.fillText(String(i + 1), sx + 5, sy - 4);
@@ -184,7 +184,7 @@ export function drawDribbleLayer(ctx, toScreen, stats, team, opts = {}) {
  * legend in index.html and the panel.
  */
 export const DRIBBLE_LEGEND = Object.freeze([
-  Object.freeze({ color: '#50dc8c', label: 'Successful take-on' }),
-  Object.freeze({ color: '#ff5c5c', label: 'Lost dribble' }),
-  Object.freeze({ color: '#6eb4ff', label: 'Progressive carry' }),
+  Object.freeze({ color: '#52B44C', label: 'Successful take-on' }),
+  Object.freeze({ color: '#D63A3F', label: 'Lost dribble' }),
+  Object.freeze({ color: '#52B4F5', label: 'Progressive carry' }),
 ]);

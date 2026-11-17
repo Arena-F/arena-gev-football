@@ -51,10 +51,10 @@ test('the zone wash encodes activity by hue and outcome by opacity', () => {
   const failing = zoneFillStyle(10, 10, 0.0);
   const hue = (s) => Number(/hsla\((\d+),/.exec(s)[1]);
   const alpha = (s) => Number(/, ([\d.]+)\)$/.exec(s)[1]);
-  // Hot = red, moderate = yellow, quiet = green.
-  assert.equal(hue(hot), 0);
-  assert.equal(hue(zoneFillStyle(5, 10, null)), 60);
-  assert.ok(hue(quiet) > 90, 'a rarely used zone still reads green');
+  // Hot = Arena pink, moderate = violet-pink, quiet = violet.
+  assert.equal(hue(hot), 315);
+  assert.equal(hue(zoneFillStyle(5, 10, null)), 290);
+  assert.ok(hue(quiet) < 290, 'a rarely used zone still reads violet');
   // Same activity, different outcome → different opacity.
   assert.ok(alpha(hot) > alpha(failing), 'success must read solid, failure faint');
   assert.ok(alpha(quiet) > 0 && alpha(quiet) < 0.6);
@@ -126,7 +126,7 @@ test('hover and selection outline exactly one zone each', () => {
 test('the legend is exported for the canvas key', () => {
   assert.equal(DRIBBLE_LEGEND.length, 3);
   for (const item of DRIBBLE_LEGEND) {
-    assert.match(item.color, /^#[0-9a-f]{6}$/);
+    assert.match(item.color, /^#[0-9a-fA-F]{6}$/);
     assert.ok(item.label.length > 3);
   }
 });

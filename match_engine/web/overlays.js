@@ -3,6 +3,7 @@
 import { smoothstep } from './easing.js';
 import { PITCH } from './analysis.js';
 import { networkLevel } from './graphs.js';
+import { NETWORK_COLORS } from './brand.js';
 
 // Screen-space hit targets for the pass-lane destination chips. The app reads
 // this after each frame so a chip can open the receiver's player panel.
@@ -10,15 +11,15 @@ export const laneTargetHits = [];
 
 const HOME_HEAT = [
   [0.0, 0, 0, 0, 0],
-  [0.35, 255, 236, 170, 13],
-  [0.65, 255, 214, 120, 26],
-  [1.0, 255, 190, 90, 46],
+  [0.35, 239, 194, 240, 13],
+  [0.65, 214, 126, 221, 26],
+  [1.0, 173, 69, 231, 46],
 ];
 const AWAY_HEAT = [
   [0.0, 0, 0, 0, 0],
-  [0.35, 190, 240, 255, 13],
-  [0.65, 140, 200, 255, 26],
-  [1.0, 110, 160, 255, 46],
+  [0.35, 187, 223, 253, 13],
+  [0.65, 104, 189, 249, 26],
+  [1.0, 50, 153, 224, 46],
 ];
 
 function buildHeatLut(stops) {
@@ -146,7 +147,7 @@ export function drawOffsideLine(ctx, toScreen, x, alpha, top, bottom) {
   const [sx] = toScreen(x, 0);
   ctx.save();
   ctx.setLineDash([7, 7]);
-  ctx.strokeStyle = `rgba(255, 100, 100, ${(0.55 * alpha).toFixed(3)})`;
+  ctx.strokeStyle = `rgba(214, 58, 63, ${(0.55 * alpha).toFixed(3)})`;
   ctx.lineWidth = 1.2;
   ctx.beginPath();
   ctx.moveTo(sx, top);
@@ -180,7 +181,7 @@ export function drawAnalysis(ctx, toScreen, players, team, alpha, ball, possessi
   if (!players || players.length === 0 || alpha <= 0.01 || !ball) return;
   const teamPlayers = players.filter((p) => p.team === team);
   if (teamPlayers.length === 0) return;
-  const teamRgb = team === 1 ? '47,129,247' : '242,242,242';
+  const teamRgb = team === 1 ? '82,180,245' : '255,255,255';
   const attackDir = team === 0 ? 1 : -1;
 
   ctx.save();
@@ -262,13 +263,13 @@ export function drawAnalysis(ctx, toScreen, players, team, alpha, ball, possessi
 
       if (variant !== 'minimal') {
       ctx.save();
-      ctx.font = '700 9px ui-sans-serif, system-ui, sans-serif';
+      ctx.font = '700 9px ui-sans-serif, Manrope, system-ui, sans-serif';
       ctx.textAlign = 'left';
       ctx.textBaseline = 'middle';
       ctx.lineWidth = 3;
-      ctx.strokeStyle = 'rgba(13,17,23,0.85)';
+      ctx.strokeStyle = 'rgba(23,20,55,0.85)';
       ctx.strokeText('THREAT', cx + 12, cy - 12);
-      ctx.fillStyle = `rgba(255,180,80,${(0.9 * alpha).toFixed(3)})`;
+      ctx.fillStyle = `rgba(200,97,209,${(0.9 * alpha).toFixed(3)})`;
       ctx.fillText('THREAT', cx + 12, cy - 12);
       ctx.restore();
       }
@@ -292,9 +293,9 @@ export function drawAnalysis(ctx, toScreen, players, team, alpha, ball, possessi
           ctx.moveTo(pts[0][0], pts[0][1]);
           for (let i = 1; i < pts.length; i++) ctx.lineTo(pts[i][0], pts[i][1]);
           ctx.closePath();
-          ctx.fillStyle = `rgba(255,180,80,${(0.06 * alpha).toFixed(3)})`;
+          ctx.fillStyle = `rgba(200,97,209,${(0.06 * alpha).toFixed(3)})`;
           ctx.fill();
-          ctx.strokeStyle = `rgba(255,180,80,${(0.4 * alpha).toFixed(3)})`;
+          ctx.strokeStyle = `rgba(200,97,209,${(0.4 * alpha).toFixed(3)})`;
           ctx.lineWidth = 1;
           ctx.setLineDash([3, 3]);
           ctx.stroke();
@@ -314,7 +315,7 @@ export function drawAnalysis(ctx, toScreen, players, team, alpha, ball, possessi
       const [px, py] = toScreen(presser2.x, presser2.y);
       ctx.beginPath();
       ctx.arc(px, py, 6, 0, Math.PI * 2);
-      ctx.strokeStyle = `rgba(255,100,100,${(0.5 * alpha).toFixed(3)})`;
+      ctx.strokeStyle = `rgba(214,58,63,${(0.5 * alpha).toFixed(3)})`;
       ctx.lineWidth = 1.1;
       ctx.setLineDash([3, 3]);
       ctx.stroke();
@@ -374,10 +375,10 @@ export function drawFrozenFrame(ctx, toScreen, frame, outerAlpha = 1) {
     clipPitch(ctx, toScreen);
     if (traceWorldPolygon(ctx, toScreen, frame.vision.conePoints)) {
       ctx.globalAlpha = 0.10 * outerAlpha;
-      ctx.fillStyle = 'rgba(80,220,180,1)';
+      ctx.fillStyle = 'rgba(82,180,76,1)';
       ctx.fill();
       ctx.globalAlpha = 0.42 * outerAlpha;
-      ctx.strokeStyle = 'rgba(120,255,220,0.95)';
+      ctx.strokeStyle = 'rgba(155,217,149,0.95)';
       ctx.lineWidth = 1;
       ctx.setLineDash([4, 5]);
       ctx.stroke();
@@ -391,10 +392,10 @@ export function drawFrozenFrame(ctx, toScreen, frame, outerAlpha = 1) {
     const [, top] = toScreen(lane.x0, lane.y1);
     const [, bottom] = toScreen(lane.x0, lane.y0);
     ctx.globalAlpha = 0.055 * outerAlpha;
-    ctx.fillStyle = 'rgba(120,220,255,1)';
+    ctx.fillStyle = 'rgba(82,180,245,1)';
     ctx.fillRect(Math.min(x0, x1), Math.min(top, bottom), Math.abs(x1 - x0), Math.abs(bottom - top));
     ctx.globalAlpha = 0.34 * outerAlpha;
-    ctx.strokeStyle = 'rgba(150,235,255,0.95)';
+    ctx.strokeStyle = 'rgba(104,189,249,0.95)';
     ctx.lineWidth = 1;
     ctx.setLineDash([5, 6]);
     ctx.beginPath();
@@ -405,7 +406,7 @@ export function drawFrozenFrame(ctx, toScreen, frame, outerAlpha = 1) {
   ctx.setLineDash([]);
   for (const p of frame.players ?? []) {
     const [sx, sy] = toScreen(p.x, p.y);
-    const rgb = p.team === 1 ? '47,129,247' : '242,242,242';
+    const rgb = p.team === 1 ? '82,180,245' : '255,255,255';
     ctx.globalAlpha = 0.16 * outerAlpha;
     ctx.fillStyle = `rgba(${rgb},1)`;
     ctx.beginPath();
@@ -420,8 +421,8 @@ export function drawFrozenFrame(ctx, toScreen, frame, outerAlpha = 1) {
     ctx.stroke();
     if (Number.isFinite(p.shirt)) {
       ctx.globalAlpha = 0.72 * outerAlpha;
-      ctx.fillStyle = 'rgba(230,237,243,1)';
-      ctx.font = '700 6.5px ui-sans-serif, system-ui, sans-serif';
+      ctx.fillStyle = 'rgba(239,248,254,1)';
+      ctx.font = '700 6.5px ui-sans-serif, Manrope, system-ui, sans-serif';
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
       ctx.fillText(String(p.shirt), sx, sy + 0.3);
@@ -430,7 +431,7 @@ export function drawFrozenFrame(ctx, toScreen, frame, outerAlpha = 1) {
   if (frame.ball) {
     const [bx, by] = toScreen(frame.ball.x, frame.ball.y);
     ctx.globalAlpha = 0.7 * outerAlpha;
-    ctx.strokeStyle = 'rgba(255,234,0,1)';
+    ctx.strokeStyle = 'rgba(200,97,209,1)';
     ctx.lineWidth = 1.2;
     ctx.setLineDash([2, 3]);
     ctx.beginPath();
@@ -452,13 +453,13 @@ export function drawSubstitutionFx(ctx, toScreen, items) {
       ctx.globalAlpha = Math.max(0, Math.min(1, t.outgoing.alpha ?? 0.5));
       ctx.beginPath();
       ctx.arc(sx, sy, 5.5, 0, Math.PI * 2);
-      ctx.fillStyle = 'rgba(255,200,120,0.7)';
+      ctx.fillStyle = 'rgba(229,168,232,0.7)';
       ctx.fill();
-      ctx.strokeStyle = 'rgba(13,17,23,0.9)';
+      ctx.strokeStyle = 'rgba(23,20,55,0.9)';
       ctx.lineWidth = 1;
       ctx.stroke();
-      ctx.fillStyle = 'rgba(13,17,23,0.9)';
-      ctx.font = '700 6px ui-sans-serif, sans-serif';
+      ctx.fillStyle = 'rgba(23,20,55,0.9)';
+      ctx.font = '700 6px ui-sans-serif, Manrope, sans-serif';
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
       ctx.fillText(String(t.outgoing.shirt), sx, sy + 0.2);
@@ -468,13 +469,13 @@ export function drawSubstitutionFx(ctx, toScreen, items) {
       ctx.globalAlpha = Math.max(0, Math.min(1, t.incoming.alpha ?? 0.5));
       ctx.beginPath();
       ctx.arc(sx, sy, 5.5, 0, Math.PI * 2);
-      ctx.fillStyle = 'rgba(120,220,160,0.7)';
+      ctx.fillStyle = 'rgba(117,198,110,0.7)';
       ctx.fill();
-      ctx.strokeStyle = 'rgba(13,17,23,0.9)';
+      ctx.strokeStyle = 'rgba(23,20,55,0.9)';
       ctx.lineWidth = 1;
       ctx.stroke();
-      ctx.fillStyle = 'rgba(13,17,23,0.9)';
-      ctx.font = '700 6px ui-sans-serif, sans-serif';
+      ctx.fillStyle = 'rgba(23,20,55,0.9)';
+      ctx.font = '700 6px ui-sans-serif, Manrope, sans-serif';
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
       ctx.fillText(String(t.incoming.shirt), sx, sy + 0.2);
@@ -493,13 +494,13 @@ export function drawCelebrationFx(ctx, toScreen, fx) {
     ctx.globalAlpha = Math.max(0, Math.min(1, fx.run.alpha ?? 0.5));
     ctx.beginPath();
     ctx.arc(sx, sy, 7, 0, Math.PI * 2);
-    ctx.fillStyle = 'rgba(255,215,130,0.9)';
+    ctx.fillStyle = 'rgba(229,168,232,0.9)';
     ctx.fill();
-    ctx.strokeStyle = 'rgba(13,17,23,0.9)';
+    ctx.strokeStyle = 'rgba(23,20,55,0.9)';
     ctx.lineWidth = 1.1;
     ctx.stroke();
-    ctx.fillStyle = 'rgba(13,17,23,0.9)';
-    ctx.font = '700 7px ui-sans-serif, sans-serif';
+    ctx.fillStyle = 'rgba(23,20,55,0.9)';
+    ctx.font = '700 7px ui-sans-serif, Manrope, sans-serif';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.fillText(String(fx.run.shirt), sx, sy + 0.2);
@@ -509,7 +510,7 @@ export function drawCelebrationFx(ctx, toScreen, fx) {
     ctx.globalAlpha = Math.max(0, Math.min(1, m.alpha ?? 0.5));
     ctx.beginPath();
     ctx.arc(sx, sy, 4.5, 0, Math.PI * 2);
-    ctx.fillStyle = 'rgba(255,215,130,0.6)';
+    ctx.fillStyle = 'rgba(229,168,232,0.6)';
     ctx.fill();
   }
   ctx.globalAlpha = 1;
@@ -555,9 +556,9 @@ export function drawAttackLanes(ctx, toScreen, lanes, outerAlpha = 1, variant = 
     const [bx0, byTop] = toScreen(lane.x0, lane.y1);
     const [bx1, byBottom] = toScreen(tipX, lane.y0);
     const band = ctx.createLinearGradient(sx0, sy, sxTip, syTip);
-    band.addColorStop(0, 'rgba(120,220,255,0)');
-    band.addColorStop(0.45, 'rgba(120,220,255,0.55)');
-    band.addColorStop(1, 'rgba(170,245,255,1)');
+    band.addColorStop(0, 'rgba(82,180,245,0)');
+    band.addColorStop(0.45, 'rgba(82,180,245,0.55)');
+    band.addColorStop(1, 'rgba(140,198,251,1)');
     ctx.globalAlpha = a * (0.035 + 0.085 * score);
     ctx.fillStyle = band;
     ctx.fillRect(
@@ -570,7 +571,7 @@ export function drawAttackLanes(ctx, toScreen, lanes, outerAlpha = 1, variant = 
     // 2. Internal channel boundaries: dashed, so they never read as pitch
     // markings. Touchline edges are left to the pitch itself.
     ctx.globalAlpha = a * (0.03 + 0.05 * score);
-    ctx.strokeStyle = 'rgba(120,220,255,1)';
+    ctx.strokeStyle = 'rgba(82,180,245,1)';
     ctx.lineWidth = 1;
     ctx.setLineDash([10, 12]);
     for (const edgeY of [lane.y0, lane.y1]) {
@@ -587,9 +588,9 @@ export function drawAttackLanes(ctx, toScreen, lanes, outerAlpha = 1, variant = 
     // 3. Glow under-stroke, then the bright core. Both fade in from halfway
     // so the channel grows out of the line rather than starting abruptly.
     const line = ctx.createLinearGradient(sx0, sy, sxTip, syTip);
-    line.addColorStop(0, 'rgba(120,220,255,0.12)');
-    line.addColorStop(0.35, 'rgba(120,220,255,0.8)');
-    line.addColorStop(1, 'rgba(190,250,255,1)');
+    line.addColorStop(0, 'rgba(82,180,245,0.12)');
+    line.addColorStop(0.35, 'rgba(82,180,245,0.8)');
+    line.addColorStop(1, 'rgba(187,223,253,1)');
     ctx.strokeStyle = line;
     ctx.globalAlpha = a * (0.06 + 0.17 * score);
     ctx.lineWidth = 5 + 5 * score;
@@ -608,7 +609,7 @@ export function drawAttackLanes(ctx, toScreen, lanes, outerAlpha = 1, variant = 
     // keeps its team colour so the handover is readable at a glance.
     if (ghost) {
       ctx.globalAlpha = a * 0.55;
-      ctx.strokeStyle = lane.team === 1 ? 'rgba(47,129,247,1)' : 'rgba(242,242,242,1)';
+      ctx.strokeStyle = lane.team === 1 ? 'rgba(82,180,245,1)' : 'rgba(255,255,255,1)';
       ctx.lineWidth = 1.6;
       ctx.beginPath();
       ctx.moveTo(sx0, sy - 3);
@@ -634,8 +635,8 @@ export function drawAttackLanes(ctx, toScreen, lanes, outerAlpha = 1, variant = 
     // 4. Soft leading cap: the lane arrives rather than stopping dead.
     const headR = 5 + 8 * score;
     const head = ctx.createRadialGradient(sxTip, syTip, 0, sxTip, syTip, headR);
-    head.addColorStop(0, 'rgba(170,240,255,0.55)');
-    head.addColorStop(1, 'rgba(120,220,255,0)');
+    head.addColorStop(0, 'rgba(140,198,251,0.55)');
+    head.addColorStop(1, 'rgba(82,180,245,0)');
     ctx.globalAlpha = a * (0.12 + 0.22 * score);
     ctx.fillStyle = head;
     ctx.beginPath();
@@ -652,7 +653,7 @@ export function drawAttackLanes(ctx, toScreen, lanes, outerAlpha = 1, variant = 
       const [px, py] = toScreen(lane.target.x, lane.target.y);
       if (Math.hypot(tx - px, ty - py) > 3) {
         ctx.globalAlpha = a * 0.18;
-        ctx.strokeStyle = 'rgba(170,245,255,0.8)';
+        ctx.strokeStyle = 'rgba(140,198,251,0.8)';
         ctx.lineWidth = 1;
         ctx.setLineDash([2, 4]);
         ctx.beginPath();
@@ -662,22 +663,22 @@ export function drawAttackLanes(ctx, toScreen, lanes, outerAlpha = 1, variant = 
         ctx.setLineDash([]);
       }
       ctx.globalAlpha = a * 0.9;
-      ctx.fillStyle = 'rgba(10, 20, 28, 0.82)';
-      ctx.strokeStyle = 'rgba(170,245,255,0.9)';
+      ctx.fillStyle = 'rgba(23, 20, 55, 0.82)';
+      ctx.strokeStyle = 'rgba(140,198,251,0.9)';
       ctx.lineWidth = 1;
       ctx.beginPath();
       ctx.arc(tx, ty, 8, 0, Math.PI * 2);
       ctx.fill();
       ctx.stroke();
       if (Number.isFinite(lane.target.shirt)) {
-        ctx.fillStyle = 'rgba(220,255,255,1)';
-        ctx.font = '700 8px ui-sans-serif, system-ui, sans-serif';
+        ctx.fillStyle = 'rgba(217,238,253,1)';
+        ctx.font = '700 8px ui-sans-serif, Manrope, system-ui, sans-serif';
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
         ctx.fillText(String(lane.target.shirt), tx, ty - 2);
         if (Number.isFinite(lane.target.p)) {
-          ctx.fillStyle = 'rgba(160,235,255,0.92)';
-          ctx.font = '600 6.5px ui-sans-serif, system-ui, sans-serif';
+          ctx.fillStyle = 'rgba(140,198,251,0.92)';
+          ctx.font = '600 6.5px ui-sans-serif, Manrope, system-ui, sans-serif';
           ctx.fillText(`${Math.round(lane.target.p * 100)}%`, tx, ty + 6);
         }
         laneTargetHits.push({
@@ -703,7 +704,7 @@ export function drawAttackLanes(ctx, toScreen, lanes, outerAlpha = 1, variant = 
         const [, vy0] = toScreen(pp.x, lane.y0);
         const [, vy1] = toScreen(pp.x, lane.y1);
         ctx.globalAlpha = a * (0.08 + 0.12 * score);
-        ctx.strokeStyle = 'rgba(190,250,255,1)';
+        ctx.strokeStyle = 'rgba(187,223,253,1)';
         ctx.lineWidth = 1;
         ctx.setLineDash([3, 5]);
         ctx.beginPath();
@@ -714,16 +715,16 @@ export function drawAttackLanes(ctx, toScreen, lanes, outerAlpha = 1, variant = 
         // Soft bead on the centre line.
         const pr = 10 + 10 * score;
         const bead = ctx.createRadialGradient(mx, my, 0, mx, my, pr);
-        bead.addColorStop(0, 'rgba(220,255,255,0.9)');
-        bead.addColorStop(0.4, 'rgba(140,235,255,0.45)');
-        bead.addColorStop(1, 'rgba(120,220,255,0)');
+        bead.addColorStop(0, 'rgba(217,238,253,0.9)');
+        bead.addColorStop(0.4, 'rgba(104,189,249,0.45)');
+        bead.addColorStop(1, 'rgba(82,180,245,0)');
         ctx.globalAlpha = a * (0.25 + 0.3 * score);
         ctx.fillStyle = bead;
         ctx.beginPath();
         ctx.arc(mx, my, pr, 0, Math.PI * 2);
         ctx.fill();
         ctx.globalAlpha = a * (0.55 + 0.3 * score);
-        ctx.fillStyle = 'rgba(230,255,255,1)';
+        ctx.fillStyle = 'rgba(239,248,254,1)';
         ctx.beginPath();
         ctx.arc(mx, my, 2.4 + 1.6 * score, 0, Math.PI * 2);
         ctx.fill();
@@ -742,7 +743,7 @@ export function drawAttackLanes(ctx, toScreen, lanes, outerAlpha = 1, variant = 
       const [tx, ty] = toScreen(pxWorld - dirSign * 2.8, y);
       // Comet tail.
       ctx.globalAlpha = a * 0.3 * Math.sin(Math.PI * u);
-      ctx.strokeStyle = 'rgba(180,245,255,1)';
+      ctx.strokeStyle = 'rgba(140,198,251,1)';
       ctx.lineWidth = 2.4;
       ctx.beginPath();
       ctx.moveTo(tx, ty);
@@ -750,7 +751,7 @@ export function drawAttackLanes(ctx, toScreen, lanes, outerAlpha = 1, variant = 
       ctx.stroke();
       // Halo + core bead.
       ctx.globalAlpha = a * 0.16 * Math.sin(Math.PI * u);
-      ctx.fillStyle = 'rgba(160,235,255,1)';
+      ctx.fillStyle = 'rgba(140,198,251,1)';
       ctx.beginPath();
       ctx.arc(px, py, 9, 0, Math.PI * 2);
       ctx.fill();
@@ -804,7 +805,7 @@ export function drawAttackChannels(ctx, toScreen, channels, outerAlpha = 1, vari
     // Soft glow pass.
     if (variant !== 'heat-landing') {
       ctx.globalAlpha = a * (0.09 + 0.08 * score);
-      ctx.strokeStyle = 'rgba(255,190,90,1)';
+      ctx.strokeStyle = 'rgba(200,97,209,1)';
       ctx.lineWidth = width * 1.9;
       ctx.beginPath();
       ctx.moveTo(fx, fy);
@@ -851,7 +852,7 @@ export function drawAttackChannels(ctx, toScreen, channels, outerAlpha = 1, vari
         const ex = (1 - t) * (1 - t) * fx + 2 * (1 - t) * t * cx + t * t * tx;
         const ey = (1 - t) * (1 - t) * fy + 2 * (1 - t) * t * cy + t * t * ty;
         ctx.globalAlpha = a * (0.28 - k * 0.06);
-        ctx.fillStyle = 'rgba(255,190,90,1)';
+        ctx.fillStyle = 'rgba(200,97,209,1)';
         ctx.beginPath();
         ctx.arc(ex, ey, 3.5 - k * 0.6, 0, Math.PI * 2);
         ctx.fill();
@@ -872,7 +873,7 @@ export function drawAttackChannels(ctx, toScreen, channels, outerAlpha = 1, vari
       ctx.lineTo(tx - ux * head - uy * 4, ty - uy * head + ux * 4);
       ctx.lineTo(tx - ux * head + uy * 4, ty - uy * head - ux * 4);
       ctx.closePath();
-      ctx.fillStyle = 'rgba(255,190,90,1)';
+      ctx.fillStyle = 'rgba(200,97,209,1)';
       ctx.fill();
     }
     // Anchor ring: the run belongs to this player.
@@ -880,7 +881,7 @@ export function drawAttackChannels(ctx, toScreen, channels, outerAlpha = 1, vari
       ctx.globalAlpha = a * 0.22;
       ctx.beginPath();
       ctx.arc(fx, fy, 7 + 1.5 * g, 0, Math.PI * 2);
-      ctx.strokeStyle = 'rgba(255,190,90,1)';
+      ctx.strokeStyle = 'rgba(200,97,209,1)';
       ctx.lineWidth = 1;
       ctx.stroke();
     }
@@ -900,7 +901,7 @@ export function drawAttackChannels(ctx, toScreen, channels, outerAlpha = 1, vari
       const [tx0, tyTop] = toScreen(l.x0, l.y1);
       const [tx1, tyBottom] = toScreen(l.x1, l.y0);
       ctx.globalAlpha = a * lg * (0.012 + 0.018 * score);
-      ctx.fillStyle = 'rgba(255,190,90,1)';
+      ctx.fillStyle = 'rgba(200,97,209,1)';
       ctx.fillRect(
         Math.min(tx0, tx1),
         Math.min(tyTop, tyBottom),
@@ -913,9 +914,9 @@ export function drawAttackChannels(ctx, toScreen, channels, outerAlpha = 1, vari
       ctx.scale(1, 0.42);
       const r = 18 + 12 * score;
       const landingGrad = ctx.createRadialGradient(0, 0, 0, 0, 0, r);
-      landingGrad.addColorStop(0, 'rgba(255,214,130,0.42)');
-      landingGrad.addColorStop(0.55, 'rgba(255,190,90,0.16)');
-      landingGrad.addColorStop(1, 'rgba(255,190,90,0)');
+      landingGrad.addColorStop(0, 'rgba(229,168,232,0.42)');
+      landingGrad.addColorStop(0.55, 'rgba(200,97,209,0.16)');
+      landingGrad.addColorStop(1, 'rgba(200,97,209,0)');
       ctx.globalAlpha = a * lg;
       ctx.fillStyle = landingGrad;
       ctx.beginPath();
@@ -926,7 +927,7 @@ export function drawAttackChannels(ctx, toScreen, channels, outerAlpha = 1, vari
       const [cx0, cy0] = toScreen(tip.x - 2.6, tip.y);
       const [cx1, cy1] = toScreen(tip.x + 2.6, tip.y);
       ctx.globalAlpha = a * lg * (0.24 + 0.3 * score);
-      ctx.strokeStyle = 'rgba(255,214,130,1)';
+      ctx.strokeStyle = 'rgba(229,168,232,1)';
       ctx.lineWidth = 1.2 + 1.4 * score;
       ctx.beginPath();
       ctx.moveTo(cx0, cy0);
@@ -936,7 +937,7 @@ export function drawAttackChannels(ctx, toScreen, channels, outerAlpha = 1, vari
       ctx.globalAlpha = a * lg * 0.35;
       ctx.beginPath();
       ctx.arc(lx, ly, 5 + 2 * score, 0, Math.PI * 2);
-      ctx.strokeStyle = 'rgba(255,214,130,1)';
+      ctx.strokeStyle = 'rgba(229,168,232,1)';
       ctx.lineWidth = 1;
       ctx.stroke();
     }
@@ -951,18 +952,18 @@ export function drawAttackChannels(ctx, toScreen, channels, outerAlpha = 1, vari
 // network in the possession team's colours — DEF teal, MID violet, ATT rose.
 // Link strength steps up a per-unit pass ladder (DEF 1/4/10/22, MID 1/3/8/18,
 // FWD 1/2/5/12); cross-unit passes never form a wire.
-/** Unit link colours as [r, g, b]. */
+/** Unit link colours as [r, g, b]: DEF primary, MID purple, FWD secondary. */
 export const NETWORK_UNIT_COLORS = Object.freeze({
-  def: Object.freeze([56, 214, 196]),
-  mid: Object.freeze([167, 139, 250]),
-  fwd: Object.freeze([251, 113, 133]),
+  def: Object.freeze([82, 180, 245]),
+  mid: Object.freeze([142, 95, 236]),
+  fwd: Object.freeze([200, 97, 209]),
 });
 
-/** Unit link colours as CSS hex (legend / lab use). */
+/** Unit link colours as CSS hex (legend / lab use): DEF primary, MID purple, FWD secondary. */
 export const NETWORK_UNIT_CSS = Object.freeze({
-  def: '#38d6c4',
-  mid: '#a78bfa',
-  fwd: '#fb7185',
+  def: NETWORK_COLORS.def,
+  mid: NETWORK_COLORS.mid,
+  fwd: NETWORK_COLORS.fwd,
 });
 
 // Tiered link styles per strength level 0–4: a clearly visible very light
@@ -1273,7 +1274,7 @@ export function drawVisionField(ctx, toScreen, field, outerAlpha = 1, pixelsPerM
   // 1. Potential field: the full arc at a whisper.
   if (traceWorldPolygon(ctx, toScreen, field.sector)) {
     ctx.globalAlpha = 0.05 * outerAlpha;
-    ctx.fillStyle = 'rgba(80,220,180,1)';
+    ctx.fillStyle = 'rgba(82,180,76,1)';
     ctx.fill();
   }
 
@@ -1306,9 +1307,9 @@ export function drawVisionField(ctx, toScreen, field, outerAlpha = 1, pixelsPerM
   if (pts && pts.length >= 3) {
     const radiusPx = Math.max(1, field.reach * pixelsPerMetre);
     const grad = ctx.createRadialGradient(ax, ay, 2, ax, ay, radiusPx);
-    grad.addColorStop(0, 'rgba(120,255,220,0.9)');
-    grad.addColorStop(0.55, 'rgba(80,220,180,0.5)');
-    grad.addColorStop(1, 'rgba(80,220,180,0.08)');
+    grad.addColorStop(0, 'rgba(155,217,149,0.9)');
+    grad.addColorStop(0.55, 'rgba(82,180,76,0.5)');
+    grad.addColorStop(1, 'rgba(82,180,76,0.08)');
     ctx.fillStyle = grad;
     const falloff = field.falloff ?? [];
     const buckets = new Map();
@@ -1335,7 +1336,7 @@ export function drawVisionField(ctx, toScreen, field, outerAlpha = 1, pixelsPerM
     // 4. Crisp light boundary: the analytical edge of the visible field.
     if (traceWorldPolygon(ctx, toScreen, field.polygon)) {
       ctx.globalAlpha = 0.22 * outerAlpha;
-      ctx.strokeStyle = 'rgba(120,255,220,1)';
+      ctx.strokeStyle = 'rgba(155,217,149,1)';
       ctx.lineWidth = 1;
       ctx.stroke();
     }
@@ -1360,7 +1361,7 @@ export function drawVisionCone(ctx, toScreen, cone, outerAlpha = 1, variant = 'c
     // busy heatmap or when the analyst only needs the boundary.
     if (traceWorldPolygon(ctx, toScreen, cone.conePoints ?? [])) {
       ctx.globalAlpha = 0.5 * outerAlpha;
-      ctx.strokeStyle = 'rgba(120,255,220,0.9)';
+      ctx.strokeStyle = 'rgba(155,217,149,0.9)';
       ctx.lineWidth = 1.2;
       ctx.stroke();
     }
@@ -1389,16 +1390,16 @@ export function drawVisionCone(ctx, toScreen, cone, outerAlpha = 1, variant = 'c
     );
     const r = Math.max(8, Math.hypot(pxs - axs, pys - ays));
     const grad = ctx.createRadialGradient(axs, ays, 2, axs, ays, r);
-    grad.addColorStop(0, 'rgba(120,255,220,0.28)');
-    grad.addColorStop(0.55, 'rgba(80,220,180,0.10)');
-    grad.addColorStop(1, 'rgba(80,220,180,0)');
+    grad.addColorStop(0, 'rgba(155,217,149,0.28)');
+    grad.addColorStop(0.55, 'rgba(82,180,76,0.10)');
+    grad.addColorStop(1, 'rgba(82,180,76,0)');
     ctx.globalAlpha = outerAlpha;
     ctx.fillStyle = grad;
     ctx.beginPath();
     ctx.arc(axs, ays, r, 0, Math.PI * 2);
     ctx.fill();
     ctx.globalAlpha = 0.35 * outerAlpha;
-    ctx.strokeStyle = 'rgba(120,255,220,0.9)';
+    ctx.strokeStyle = 'rgba(155,217,149,0.9)';
     ctx.lineWidth = 1;
     ctx.beginPath();
     ctx.moveTo(axs, ays);
@@ -1425,7 +1426,7 @@ export function drawVisionCone(ctx, toScreen, cone, outerAlpha = 1, variant = 'c
         list.push([pts[i], pts[i + 1]]);
         buckets.set(level, list);
       }
-      ctx.fillStyle = 'rgba(80,220,180,1)';
+      ctx.fillStyle = 'rgba(82,180,76,1)';
       for (const [level, pairs] of [...buckets.entries()].sort((a, b) => a[0] - b[0])) {
         ctx.globalAlpha = 0.14 * outerAlpha * level;
         ctx.beginPath();
@@ -1441,7 +1442,7 @@ export function drawVisionCone(ctx, toScreen, cone, outerAlpha = 1, variant = 'c
       }
     } else {
       ctx.globalAlpha = 0.16 * outerAlpha;
-      ctx.fillStyle = 'rgba(80,220,180,1)';
+      ctx.fillStyle = 'rgba(82,180,76,1)';
       ctx.beginPath();
       const [sx0, sy0] = toScreen(pts[0].x, pts[0].y);
       ctx.moveTo(sx0, sy0);
@@ -1460,7 +1461,7 @@ export function drawVisionCone(ctx, toScreen, cone, outerAlpha = 1, variant = 'c
   const showTeammateLines = variant === 'classic';
   if (showBlind && bpts.length > 0) {
     ctx.globalAlpha = 0.03 * outerAlpha;
-    ctx.fillStyle = 'rgba(255,110,110,1)';
+    ctx.fillStyle = 'rgba(214,58,63,1)';
     ctx.beginPath();
     const [bsx0, bsy0] = toScreen(bpts[0].x, bpts[0].y);
     ctx.moveTo(bsx0, bsy0);
@@ -1479,7 +1480,7 @@ export function drawVisionCone(ctx, toScreen, cone, outerAlpha = 1, variant = 'c
   const [ax2, ay2] = toScreen(cone.apex.x, cone.apex.y);
   // visible teammates: solid line in teal
   ctx.globalAlpha = 0.4 * outerAlpha;
-  ctx.strokeStyle = 'rgba(80,220,180,1)';
+  ctx.strokeStyle = 'rgba(82,180,76,1)';
   ctx.lineWidth = 1.2;
   for (const t of cone.visible ?? []) {
     const [tx, ty] = toScreen(t.x, t.y);
@@ -1490,7 +1491,7 @@ export function drawVisionCone(ctx, toScreen, cone, outerAlpha = 1, variant = 'c
   }
   // blind teammates: dotted line in red
   ctx.globalAlpha = 0.4 * outerAlpha;
-  ctx.strokeStyle = 'rgba(255,110,110,1)';
+  ctx.strokeStyle = 'rgba(214,58,63,1)';
   ctx.setLineDash([3, 3]);
   ctx.lineWidth = 1;
   for (const t of cone.blind ?? []) {
@@ -1520,20 +1521,20 @@ export function drawEventFx(ctx, toScreen, effects) {
       ctx.globalAlpha = alpha * 0.8;
       ctx.beginPath();
       ctx.arc(sx, sy, 6 + p * 12, 0, Math.PI * 2);
-      ctx.strokeStyle = 'rgba(120,220,160,0.9)';
+      ctx.strokeStyle = 'rgba(117,198,110,0.9)';
       ctx.lineWidth = 1.5;
       ctx.stroke();
     } else if (e.kind === 'post') {
       ctx.globalAlpha = alpha * 0.8;
       ctx.beginPath();
       ctx.arc(sx, sy, 4 + p * 8, 0, Math.PI * 2);
-      ctx.strokeStyle = 'rgba(255,200,120,0.9)';
+      ctx.strokeStyle = 'rgba(229,168,232,0.9)';
       ctx.lineWidth = 1.5;
       ctx.stroke();
     } else if (e.kind === 'flag') {
       ctx.globalAlpha = alpha * 0.9;
-      ctx.fillStyle = 'rgba(255,100,100,0.9)';
-      ctx.font = '700 10px ui-sans-serif, sans-serif';
+      ctx.fillStyle = 'rgba(214,58,63,0.9)';
+      ctx.font = '700 10px ui-sans-serif, Manrope, sans-serif';
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
       ctx.fillText('FLAG', sx, sy - 12);

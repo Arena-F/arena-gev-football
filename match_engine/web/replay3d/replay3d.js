@@ -55,12 +55,12 @@ function durationOf(clip) {
 
 function teamInfo(meta, team) {
   if (team === 0) {
-    return { name: (meta && meta.homeName) || 'Home', color: (meta && meta.homeColor) || '#f2f2f2' };
+    return { name: (meta && meta.homeName) || 'Home', color: (meta && meta.homeColor) || '#FFFFFF' };
   }
   if (team === 1) {
-    return { name: (meta && meta.awayName) || 'Away', color: (meta && meta.awayColor) || '#2f81f7' };
+    return { name: (meta && meta.awayName) || 'Away', color: (meta && meta.awayColor) || '#52B4F5' };
   }
-  return { name: 'Match', color: '#ffbe5a' };
+  return { name: 'Match', color: '#C861D1' };
 }
 
 export function createReplay3D({ recorder = null, getIndex = null } = {}) {
@@ -260,12 +260,12 @@ export function createReplay3D({ recorder = null, getIndex = null } = {}) {
     const H = els.momentum.height;
     const { home, away } = stage.analysis.momentum || { home: [], away: [] };
     ctx.clearRect(0, 0, W, H);
-    ctx.fillStyle = '#0d1117';
+    ctx.fillStyle = '#171437';
     ctx.fillRect(0, 0, W, H);
     const all = home.concat(away);
     if (!all.length) {
-      ctx.fillStyle = '#6e7681';
-      ctx.font = '11px ui-sans-serif, system-ui, sans-serif';
+      ctx.fillStyle = '#737373';
+      ctx.font = '11px Manrope, ui-sans-serif, system-ui, sans-serif';
       ctx.fillText('No threat yet in this window', 12, H / 2 + 4);
       return;
     }
@@ -275,7 +275,7 @@ export function createReplay3D({ recorder = null, getIndex = null } = {}) {
     const t1 = theaterClip ? theaterClip.endT : 1;
     const X = (t) => 8 + ((t - t0) / Math.max(1e-6, t1 - t0)) * (W - 16);
     const Y = (v) => H - 8 - (v / max) * (H - 20);
-    for (const [series, color] of [[home, '#f2f2f2'], [away, '#2f81f7']]) {
+    for (const [series, color] of [[home, '#FFFFFF'], [away, '#52B4F5']]) {
       if (!series.length) continue;
       ctx.strokeStyle = color;
       ctx.lineWidth = 1.6;
@@ -286,7 +286,7 @@ export function createReplay3D({ recorder = null, getIndex = null } = {}) {
     }
     if (theaterClip) {
       const cx = X(Math.max(t0, Math.min(t1, theaterClip.startT + clipTime)));
-      ctx.strokeStyle = 'rgba(255, 190, 90, 0.8)';
+      ctx.strokeStyle = 'rgba(200, 97, 209, 0.8)';
       ctx.lineWidth = 1;
       ctx.beginPath();
       ctx.moveTo(cx, 4);

@@ -16,8 +16,8 @@ import { HIP_OFFSET } from './mocapPose.js';
 
 const GK_HOME = '#f5c542';
 const GK_AWAY = '#ff6b6b';
-const DEFAULT_HOME = '#f2f2f2';
-const DEFAULT_AWAY = '#2f81f7';
+const DEFAULT_HOME = '#FFFFFF';
+const DEFAULT_AWAY = '#52B4F5';
 const BOOT_COLOR = '#111417';
 
 export const SKIN_TONES = ['#f2c9a0', '#e0ac7e', '#c68a5a', '#a96b41', '#7d4b2e', '#5c3520'];

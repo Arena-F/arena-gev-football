@@ -261,7 +261,7 @@ test('comet ring draws a blended white/pink conic band that rotates', () => {
   assert.equal(gradient.x, 100);
   assert.equal(gradient.y, 120);
   // White and pink stops alternate and the ends meet so there is no seam.
-  assert.ok(gradient.stops.some(([, color]) => color.includes('255,95,162')));
+  assert.ok(gradient.stops.some(([, color]) => color.includes('200,97,209')));
   assert.ok(gradient.stops.some(([, color]) => color.includes('255,255,255')));
   assert.equal(gradient.stops[0][0], 0);
   assert.equal(gradient.stops[gradient.stops.length - 1][0], 1);
@@ -269,7 +269,7 @@ test('comet ring draws a blended white/pink conic band that rotates', () => {
   const arc = calls.find(([name]) => name === 'arc');
   assert.equal(arc[3], 12.2);
   assert.ok(calls.some(([name, prop, value]) =>
-    name === 'set' && prop === 'shadowColor' && String(value).includes('255,95,162')));
+    name === 'set' && prop === 'shadowColor' && String(value).includes('200,97,209')));
 });
 
 test('duo ring draws counter-rotating white and pink tapered arcs', () => {
@@ -283,7 +283,7 @@ test('duo ring draws counter-rotating white and pink tapered arcs', () => {
     .filter(([name, prop]) => name === 'set' && prop === 'strokeStyle')
     .map(([, , value]) => String(value));
   assert.ok(styles.some((s) => s.includes('255,255,255')));
-  assert.ok(styles.some((s) => s.includes('255,95,162')));
+  assert.ok(styles.some((s) => s.includes('200,97,209')));
   // Heads sit on opposite sides of the circle and travel in opposite directions.
   const starts = arcs.map(([, , , , a0]) => a0);
   assert.ok(starts.some((a) => a > 0.9 && a < 1.1), 'white head at +angle');

@@ -313,8 +313,10 @@ export function drawBallTrail(ctx, toScreen, points, options = {}) {
 // frame where two rings sit at full strength or none does.
 
 const TAU = Math.PI * 2;
+import { hexCss, BRAND } from './brand.js';
+
 const RING_WHITE = '255,255,255';
-const RING_PINK = '255,95,162';
+const RING_PINK = hexCss(BRAND.secondary); // Arena secondary (pink 500)
 
 function clamp01(value) {
   if (!Number.isFinite(value)) return 0;
@@ -381,18 +383,18 @@ function strokeConicRing(ctx, x, y, radius, width, alpha, angle) {
   }
   if (!gradient || typeof gradient.addColorStop !== 'function') return false;
   gradient.addColorStop(0, 'rgba(255,255,255,0.98)');
-  gradient.addColorStop(0.16, 'rgba(255,214,236,0.98)');
-  gradient.addColorStop(0.33, 'rgba(255,95,162,0.99)');
+  gradient.addColorStop(0.16, 'rgba(239,194,240,0.98)');
+  gradient.addColorStop(0.33, 'rgba(200,97,209,0.99)');
   gradient.addColorStop(0.5, 'rgba(255,255,255,0.98)');
-  gradient.addColorStop(0.66, 'rgba(255,214,236,0.98)');
-  gradient.addColorStop(0.83, 'rgba(255,95,162,0.99)');
+  gradient.addColorStop(0.66, 'rgba(239,194,240,0.98)');
+  gradient.addColorStop(0.83, 'rgba(200,97,209,0.99)');
   gradient.addColorStop(1, 'rgba(255,255,255,0.98)');
 
   ctx.save();
   ctx.globalAlpha = alpha;
   ctx.strokeStyle = gradient;
   ctx.lineWidth = width;
-  ctx.shadowColor = 'rgba(255,95,162,0.7)';
+  ctx.shadowColor = 'rgba(200,97,209,0.7)';
   ctx.shadowBlur = width * 2.4;
   ctx.beginPath();
   ctx.arc(x, y, radius, 0, TAU);

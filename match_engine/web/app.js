@@ -451,7 +451,7 @@ const highlighter = createHighlightTracker(
 );
 // 3D replay clips are recorded from the same snapshots the pitch draws, at
 // 10 Hz, so the experiment never seeks or re-simulates the engine.
-const REPLAY_TEAM_COLORS = ['#f2f2f2', '#2f81f7'];
+const REPLAY_TEAM_COLORS = ['#FFFFFF', '#52B4F5'];
 const replayRecorder = createClipRecorder({ preSecs: 15, postSecs: 15 });
 const replay3d = createReplay3D({ recorder: replayRecorder, getIndex: () => dribbleIndex });
 let offsideX = NaN;
@@ -1318,7 +1318,7 @@ function render(dt = 0) {
   // Untransformed base fill: panned margins keep the page colour instead of
   // showing stale pixels, then the view transform carries every layer.
   ctx.setTransform(1, 0, 0, 1, 0, 0);
-  ctx.fillStyle = '#0d1117';
+  ctx.fillStyle = '#171437';
   ctx.fillRect(0, 0, els.canvas.width, els.canvas.height);
   applyViewTransform();
   drawPitch();
@@ -1727,7 +1727,7 @@ function render(dt = 0) {
     // (9 px) so the man on the ball is readable at a glance.
     ctx.beginPath();
     ctx.arc(sx, sy, markerRadius, 0, Math.PI * 2);
-    ctx.fillStyle = p.team === 0 ? '#f2f2f2' : '#2f81f7';
+    ctx.fillStyle = p.team === 0 ? '#FFFFFF' : '#52B4F5';
     ctx.fill();
     ctx.strokeStyle = 'rgba(0,0,0,0.75)';
     ctx.lineWidth = 1.2;
@@ -1736,8 +1736,8 @@ function render(dt = 0) {
     // GK marker: small gloves ring.
     // (role not in player snapshot here; skip to keep simple)
 
-    ctx.fillStyle = p.team === 0 ? '#0d1117' : '#ffffff';
-    ctx.font = 'bold 8px ui-sans-serif, sans-serif';
+    ctx.fillStyle = p.team === 0 ? '#171437' : '#ffffff';
+    ctx.font = 'bold 8px Manrope, ui-sans-serif, sans-serif';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.fillText(String(p.shirt), sx, sy);
@@ -1778,9 +1778,9 @@ function render(dt = 0) {
   const ballRadius = 4.2 + Math.min(bz * 0.6, 3.0);
   ctx.beginPath();
   ctx.arc(bsx, bsy - bz * 3.0, ballRadius, 0, Math.PI * 2);
-  ctx.fillStyle = '#ffea00';
+  ctx.fillStyle = '#FFFFFF';
   ctx.fill();
-  ctx.strokeStyle = '#222';
+  ctx.strokeStyle = '#171437';
   ctx.lineWidth = 1;
   ctx.stroke();
 
@@ -1812,10 +1812,10 @@ function drawHoveredPlayer() {
   ctx.save();
   ctx.beginPath();
   ctx.arc(hx, hy, hoverRadius, 0, Math.PI * 2);
-  ctx.strokeStyle = 'rgba(47,129,247,0.95)';
+  ctx.strokeStyle = 'rgba(82,180,245,0.95)';
   ctx.lineWidth = 2;
   ctx.stroke();
-  ctx.font = 'bold 11px ui-sans-serif, system-ui, sans-serif';
+  ctx.font = 'bold 11px Manrope, ui-sans-serif, system-ui, sans-serif';
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
   const tw = ctx.measureText(label).width;
@@ -1825,12 +1825,12 @@ function drawHoveredPlayer() {
   // hovering a body on the touchline never clips the label.
   const boxY = hy - 34 < 4 ? hy + 16 : hy - 34;
   const boxX = Math.max(2, Math.min(els.canvas.width - boxW - 2, hx - boxW / 2));
-  ctx.fillStyle = 'rgba(13,17,23,0.94)';
+  ctx.fillStyle = 'rgba(23,20,55,0.94)';
   ctx.fillRect(boxX, boxY, boxW, boxH);
-  ctx.strokeStyle = 'rgba(47,129,247,0.9)';
+  ctx.strokeStyle = 'rgba(82,180,245,0.9)';
   ctx.lineWidth = 1;
   ctx.strokeRect(boxX, boxY, boxW, boxH);
-  ctx.fillStyle = '#e6edf3';
+  ctx.fillStyle = '#F5F5F5';
   ctx.fillText(label, boxX + boxW / 2, boxY + boxH / 2 + 0.5);
   ctx.restore();
 }
@@ -1897,11 +1897,11 @@ function drawMomentum() {
   const H = el.height;
   c.clearRect(0, 0, W, H);
   const series = [momentum.home, momentum.away];
-  const colors = ['#f2f2f2', '#2f81f7'];
+  const colors = ['#FFFFFF', '#52B4F5'];
   const all = series.flat();
   if (all.length < 2) {
-    c.fillStyle = 'rgba(139,148,158,0.8)';
-    c.font = '10px ui-sans-serif, system-ui, sans-serif';
+    c.fillStyle = 'rgba(115,115,115,0.8)';
+    c.font = '10px Manrope, ui-sans-serif, system-ui, sans-serif';
     c.textAlign = 'center';
     c.fillText('momentum builds as the match plays', W / 2, H / 2);
     return;
@@ -1912,7 +1912,7 @@ function drawMomentum() {
   for (const s of series) for (const r of s) vmax = Math.max(vmax, r.v);
   const X = (t) => 6 + ((t - t0) / (t1 - t0)) * (W - 12);
   const Y = (v) => H - 8 - (v / vmax) * (H - 20);
-  c.strokeStyle = 'rgba(48,54,61,0.8)';
+  c.strokeStyle = 'rgba(81,70,138,0.8)';
   c.lineWidth = 1;
   c.beginPath();
   c.moveTo(0, Y(0));
@@ -1935,14 +1935,14 @@ function drawMomentum() {
       if (big || isShot) {
         const bloomR = (big ? 7 : 4) * pulse;
         const g = c.createRadialGradient(X(r.t), Y(r.v), 0, X(r.t), Y(r.v), bloomR);
-        g.addColorStop(0, big ? 'rgba(255,234,0,0.55)' : 'rgba(255,200,80,0.4)');
+        g.addColorStop(0, big ? 'rgba(200,97,209,0.55)' : 'rgba(229,168,232,0.4)');
         g.addColorStop(1, 'rgba(0,0,0,0)');
         c.fillStyle = g;
         c.beginPath();
         c.arc(X(r.t), Y(r.v), bloomR, 0, Math.PI * 2);
         c.fill();
       }
-      c.fillStyle = big ? colors[k] : (isShot ? 'rgba(255,200,80,0.9)' : 'rgba(139,148,158,0.9)');
+      c.fillStyle = big ? colors[k] : (isShot ? 'rgba(229,168,232,0.9)' : 'rgba(115,115,115,0.9)');
       c.beginPath();
       c.arc(X(r.t), Y(r.v), (big ? 3 : 1.6) * pulse, 0, Math.PI * 2);
       c.fill();
@@ -2390,18 +2390,18 @@ function exportPitchPng() {
   out.height = src.height + bar;
   const octx = out.getContext('2d');
   octx.drawImage(src, 0, 0);
-  octx.fillStyle = '#0d1117';
+  octx.fillStyle = '#171437';
   octx.fillRect(0, src.height, src.width, bar);
-  octx.font = '600 12px ui-sans-serif, system-ui, sans-serif';
+  octx.font = '600 12px Manrope, ui-sans-serif, system-ui, sans-serif';
   octx.textBaseline = 'middle';
   const y = src.height + bar / 2;
   const items = [
-    ['#f2f2f2', 'Home'],
-    ['#2f81f7', 'Away'],
-    ['#ffea00', 'Ball'],
-    ['#78dcff', 'Pass lane'],
-    ['#ffbe5a', 'Run lane'],
-    ['#50dcb4', 'Vision'],
+    ['#FFFFFF', 'Home'],
+    ['#52B4F5', 'Away'],
+    ['#FFFFFF', 'Ball'],
+    ['#8CC6FB', 'Pass lane'],
+    ['#C861D1', 'Run lane'],
+    ['#75C66E', 'Vision'],
   ];
   let x = 16;
   for (const [color, label] of items) {
@@ -2409,7 +2409,7 @@ function exportPitchPng() {
     octx.beginPath();
     octx.arc(x + 4, y, 4, 0, Math.PI * 2);
     octx.fill();
-    octx.fillStyle = '#c9d1d9';
+    octx.fillStyle = '#E9E6F7';
     octx.textAlign = 'left';
     octx.fillText(label, x + 13, y + 0.5);
     x += 13 + octx.measureText(label).width + 18;
@@ -2419,7 +2419,7 @@ function exportPitchPng() {
   const away = els.awayName?.textContent || 'Away';
   const suffix = frozenFrame ? ' · frozen frame' : '';
   const title = `${home} vs ${away} · ${clock}${suffix}`;
-  octx.fillStyle = '#8b949e';
+  octx.fillStyle = '#A3A3A3';
   octx.textAlign = 'right';
   octx.fillText(title, src.width - 16, y + 0.5);
   return out.toDataURL('image/png');
