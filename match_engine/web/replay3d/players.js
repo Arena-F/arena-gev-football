@@ -30,8 +30,8 @@ import {
 } from './playerActions.js';
 
 const CLIPS = compileLibrary(PLAYER_CLIP_DEFS);
-const DEFAULT_HOME = '#FFFFFF';
-const DEFAULT_AWAY = '#52B4F5';
+const DEFAULT_HOME = '#52B4F5';
+const DEFAULT_AWAY = '#C861D1';
 
 // Actions whose whole body should leave the ground. The mocap standing header
 // keeps a foot planted, so the jump arc is applied at the rig root and fades

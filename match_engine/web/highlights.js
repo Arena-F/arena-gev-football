@@ -66,7 +66,7 @@ export function createHighlightTracker(canvas, titleEl) {
       const [sx, sy] = toMini(p.x, p.y, W, H);
       ctx.beginPath();
       ctx.arc(sx, sy, 2.2, 0, Math.PI * 2);
-      ctx.fillStyle = p.team === 0 ? 'rgba(255,255,255,0.85)' : 'rgba(82,180,245,0.85)';
+      ctx.fillStyle = p.team === 0 ? 'rgba(82,180,245,0.85)' : 'rgba(200,97,209,0.85)';
       ctx.fill();
     }
     const blink = 0.5 + 0.5 * Math.sin((now || 0) * 5);
@@ -143,7 +143,7 @@ export function createHighlightTracker(canvas, titleEl) {
       ctx.stroke();
     }
     // label
-    ctx.fillStyle = hl.team === 0 ? '#FFFFFF' : '#52B4F5';
+    ctx.fillStyle = hl.team === 0 ? '#52B4F5' : '#C861D1';
     ctx.font = 'bold 10px Manrope, ui-sans-serif, system-ui, sans-serif';
     ctx.textAlign = 'left';
     ctx.textBaseline = 'top';

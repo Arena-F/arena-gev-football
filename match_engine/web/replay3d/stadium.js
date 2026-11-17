@@ -11,9 +11,9 @@ export const PITCH_H = 68;
 export const GOAL_HALF_WIDTH = 3.66;
 export const GOAL_HEIGHT = 2.44;
 
-const HOME_COLOR = '#FFFFFF';
-const AWAY_COLOR = '#52B4F5';
-const NEUTRAL_COLOR = '#C861D1';
+const HOME_COLOR = '#52B4F5';
+const AWAY_COLOR = '#C861D1';
+const NEUTRAL_COLOR = '#8E5FEC';
 
 function mulberry32(seed) {
   let a = seed >>> 0;

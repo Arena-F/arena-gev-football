@@ -3,7 +3,7 @@
 import { smoothstep } from './easing.js';
 import { PITCH } from './analysis.js';
 import { networkLevel } from './graphs.js';
-import { NETWORK_COLORS } from './brand.js';
+import { NETWORK_COLORS, TEAM_RGB } from './brand.js';
 
 // Screen-space hit targets for the pass-lane destination chips. The app reads
 // this after each frame so a chip can open the receiver's player panel.
@@ -11,15 +11,15 @@ export const laneTargetHits = [];
 
 const HOME_HEAT = [
   [0.0, 0, 0, 0, 0],
-  [0.35, 239, 194, 240, 13],
-  [0.65, 214, 126, 221, 26],
-  [1.0, 173, 69, 231, 46],
-];
-const AWAY_HEAT = [
-  [0.0, 0, 0, 0, 0],
   [0.35, 187, 223, 253, 13],
   [0.65, 104, 189, 249, 26],
   [1.0, 50, 153, 224, 46],
+];
+const AWAY_HEAT = [
+  [0.0, 0, 0, 0, 0],
+  [0.35, 239, 194, 240, 13],
+  [0.65, 214, 126, 221, 26],
+  [1.0, 173, 69, 231, 46],
 ];
 
 function buildHeatLut(stops) {
@@ -181,7 +181,7 @@ export function drawAnalysis(ctx, toScreen, players, team, alpha, ball, possessi
   if (!players || players.length === 0 || alpha <= 0.01 || !ball) return;
   const teamPlayers = players.filter((p) => p.team === team);
   if (teamPlayers.length === 0) return;
-  const teamRgb = team === 1 ? '82,180,245' : '255,255,255';
+  const teamRgb = TEAM_RGB[team === 1 ? 'away' : 'home'].join(',');
   const attackDir = team === 0 ? 1 : -1;
 
   ctx.save();
@@ -314,7 +314,7 @@ export function drawAnalysis(ctx, toScreen, players, team, alpha, ball, possessi
     if (variant !== 'minimal' && presser2 && pressD2 < 15) {
       const [px, py] = toScreen(presser2.x, presser2.y);
       ctx.beginPath();
-      ctx.arc(px, py, 6, 0, Math.PI * 2);
+      ctx.arc(px, py, 9, 0, Math.PI * 2);
       ctx.strokeStyle = `rgba(214,58,63,${(0.5 * alpha).toFixed(3)})`;
       ctx.lineWidth = 1.1;
       ctx.setLineDash([3, 3]);
@@ -406,23 +406,23 @@ export function drawFrozenFrame(ctx, toScreen, frame, outerAlpha = 1) {
   ctx.setLineDash([]);
   for (const p of frame.players ?? []) {
     const [sx, sy] = toScreen(p.x, p.y);
-    const rgb = p.team === 1 ? '82,180,245' : '255,255,255';
+    const rgb = TEAM_RGB[p.team === 1 ? 'away' : 'home'].join(',');
     ctx.globalAlpha = 0.16 * outerAlpha;
     ctx.fillStyle = `rgba(${rgb},1)`;
     ctx.beginPath();
-    ctx.arc(sx, sy, 5.5, 0, Math.PI * 2);
+    ctx.arc(sx, sy, 7, 0, Math.PI * 2);
     ctx.fill();
     ctx.globalAlpha = 0.55 * outerAlpha;
     ctx.strokeStyle = `rgba(${rgb},1)`;
     ctx.lineWidth = 1.1;
     ctx.setLineDash([3, 3]);
     ctx.beginPath();
-    ctx.arc(sx, sy, 5.5, 0, Math.PI * 2);
+    ctx.arc(sx, sy, 7, 0, Math.PI * 2);
     ctx.stroke();
     if (Number.isFinite(p.shirt)) {
       ctx.globalAlpha = 0.72 * outerAlpha;
       ctx.fillStyle = 'rgba(239,248,254,1)';
-      ctx.font = '700 6.5px ui-sans-serif, Manrope, system-ui, sans-serif';
+      ctx.font = '700 8px ui-sans-serif, Manrope, system-ui, sans-serif';
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
       ctx.fillText(String(p.shirt), sx, sy + 0.3);
@@ -452,14 +452,14 @@ export function drawSubstitutionFx(ctx, toScreen, items) {
       const [sx, sy] = toScreen(t.outgoing.x, t.outgoing.y);
       ctx.globalAlpha = Math.max(0, Math.min(1, t.outgoing.alpha ?? 0.5));
       ctx.beginPath();
-      ctx.arc(sx, sy, 5.5, 0, Math.PI * 2);
+      ctx.arc(sx, sy, 7, 0, Math.PI * 2);
       ctx.fillStyle = 'rgba(229,168,232,0.7)';
       ctx.fill();
       ctx.strokeStyle = 'rgba(23,20,55,0.9)';
       ctx.lineWidth = 1;
       ctx.stroke();
       ctx.fillStyle = 'rgba(23,20,55,0.9)';
-      ctx.font = '700 6px ui-sans-serif, Manrope, sans-serif';
+      ctx.font = '700 8px ui-sans-serif, Manrope, sans-serif';
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
       ctx.fillText(String(t.outgoing.shirt), sx, sy + 0.2);
@@ -468,14 +468,14 @@ export function drawSubstitutionFx(ctx, toScreen, items) {
       const [sx, sy] = toScreen(t.incoming.x, t.incoming.y);
       ctx.globalAlpha = Math.max(0, Math.min(1, t.incoming.alpha ?? 0.5));
       ctx.beginPath();
-      ctx.arc(sx, sy, 5.5, 0, Math.PI * 2);
+      ctx.arc(sx, sy, 7, 0, Math.PI * 2);
       ctx.fillStyle = 'rgba(117,198,110,0.7)';
       ctx.fill();
       ctx.strokeStyle = 'rgba(23,20,55,0.9)';
       ctx.lineWidth = 1;
       ctx.stroke();
       ctx.fillStyle = 'rgba(23,20,55,0.9)';
-      ctx.font = '700 6px ui-sans-serif, Manrope, sans-serif';
+      ctx.font = '700 8px ui-sans-serif, Manrope, sans-serif';
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
       ctx.fillText(String(t.incoming.shirt), sx, sy + 0.2);
@@ -500,7 +500,7 @@ export function drawCelebrationFx(ctx, toScreen, fx) {
     ctx.lineWidth = 1.1;
     ctx.stroke();
     ctx.fillStyle = 'rgba(23,20,55,0.9)';
-    ctx.font = '700 7px ui-sans-serif, Manrope, sans-serif';
+    ctx.font = '700 8px ui-sans-serif, Manrope, sans-serif';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.fillText(String(fx.run.shirt), sx, sy + 0.2);
@@ -609,7 +609,7 @@ export function drawAttackLanes(ctx, toScreen, lanes, outerAlpha = 1, variant = 
     // keeps its team colour so the handover is readable at a glance.
     if (ghost) {
       ctx.globalAlpha = a * 0.55;
-      ctx.strokeStyle = lane.team === 1 ? 'rgba(82,180,245,1)' : 'rgba(255,255,255,1)';
+      ctx.strokeStyle = `rgba(${TEAM_RGB[lane.team === 1 ? 'away' : 'home'].join(',')},1)`;
       ctx.lineWidth = 1.6;
       ctx.beginPath();
       ctx.moveTo(sx0, sy - 3);

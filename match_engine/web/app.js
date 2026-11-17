@@ -60,6 +60,7 @@ import {
   nearestCarrier,
   trailFadeForSpeed,
 } from './ballMotion.js';
+import { TEAM_RGB } from './brand.js';
 import { getVariant, resetVariants, setVariant, variantKeys, variantsOf } from './variants.js';
 import { fieldTheme } from './fieldThemes.js';
 import { PRESETS, clearStoredPreset, readStoredPreset, storePreset } from './presets.js';
@@ -451,7 +452,7 @@ const highlighter = createHighlightTracker(
 );
 // 3D replay clips are recorded from the same snapshots the pitch draws, at
 // 10 Hz, so the experiment never seeks or re-simulates the engine.
-const REPLAY_TEAM_COLORS = ['#FFFFFF', '#52B4F5'];
+const REPLAY_TEAM_COLORS = ['#52B4F5', '#C861D1'];
 const replayRecorder = createClipRecorder({ preSecs: 15, postSecs: 15 });
 const replay3d = createReplay3D({ recorder: replayRecorder, getIndex: () => dribbleIndex });
 let offsideX = NaN;
@@ -936,7 +937,7 @@ function drawOverlays(players, possessionTeam, setPieceActive, dt, ball) {
       // triangle, so the analysis layer stays legible. The carrier ring sits
       // outside both the grown body and the white/pink possession band, so no
       // two markers ever overlap.
-      const ringRadius = effects.isEnabled('carrierGrow') ? 16 : 7;
+      const ringRadius = effects.isEnabled('carrierGrow') ? 20 : 10;
       drawAnalysis(ctx, toScreen, players, team, alpha, ball, possessionTeam, { links: false, ringRadius }, getVariant('analysis'));
     }
   }
@@ -998,8 +999,11 @@ function inferRoles(players, roles) {
   }
 }
 
-function setStatus(msg) {
+function setStatus(msg, tone = 'info') {
   els.status.textContent = msg || '';
+  els.status.classList.toggle('is-success', tone === 'success');
+  els.status.classList.toggle('is-warning', tone === 'warning');
+  els.status.classList.toggle('is-error', tone === 'error');
 }
 
 function destroyEngine() {
@@ -1078,7 +1082,7 @@ function startEngine(xml) {
   buildDribbleIndex();
   updateClockLabel();
   updateStats();
-  setStatus(`${engine.get_duration_secs().toFixed(0)} s of match loaded`);
+  setStatus(`${engine.get_duration_secs().toFixed(0)} s of match loaded`, 'success');
   playing = true;
   els.playpause.textContent = '⏸ Pause';
 }
@@ -1632,7 +1636,7 @@ function render(dt = 0) {
   } catch (overlayError) {
     // A failed optional overlay must never hide the 22 bodies and the ball.
     console.error('Overlay error', overlayError);
-    setStatus(`Overlay error: ${overlayError && overlayError.message ? overlayError.message : overlayError}`);
+    setStatus(`Overlay error: ${overlayError && overlayError.message ? overlayError.message : overlayError}`, 'error');
     ctx.globalAlpha = 1;
     ctx.filter = 'none';
     ctx.globalCompositeOperation = 'source-over';
@@ -1722,12 +1726,12 @@ function render(dt = 0) {
     ctx.fillStyle = 'rgba(0,0,0,0.28)';
     ctx.fill();
 
-    // Player marker: 5 px ≈ 0.54 m radius at this pitch scale, much closer
-    // to a real body than the old 7 px disc. The carrier eases a lot larger
-    // (9 px) so the man on the ball is readable at a glance.
+    // Player marker: 7 px radius at this pitch scale, sized so two-digit
+    // shirts sit comfortably inside. The carrier eases a lot larger
+    // (12 px) so the man on the ball is readable at a glance.
     ctx.beginPath();
     ctx.arc(sx, sy, markerRadius, 0, Math.PI * 2);
-    ctx.fillStyle = p.team === 0 ? '#FFFFFF' : '#52B4F5';
+    ctx.fillStyle = p.team === 0 ? '#52B4F5' : '#C861D1';
     ctx.fill();
     ctx.strokeStyle = 'rgba(0,0,0,0.75)';
     ctx.lineWidth = 1.2;
@@ -1736,8 +1740,8 @@ function render(dt = 0) {
     // GK marker: small gloves ring.
     // (role not in player snapshot here; skip to keep simple)
 
-    ctx.fillStyle = p.team === 0 ? '#171437' : '#ffffff';
-    ctx.font = 'bold 8px Manrope, ui-sans-serif, sans-serif';
+    ctx.fillStyle = '#ffffff';
+    ctx.font = 'bold 9px Manrope, ui-sans-serif, sans-serif';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.fillText(String(p.shirt), sx, sy);
@@ -1745,12 +1749,14 @@ function render(dt = 0) {
     // Possession ring: white/pink band that rides the eased carrier radius, so
     // it grows with the body and fades out as possession hands over.
     if (ringAlpha > 0.01) {
+      const teamRgb = TEAM_RGB[p.team === 1 ? 'away' : 'home'].join(',');
       drawCarrierRing(ctx, sx, sy, {
         radius: markerRadius + CARRIER_RING_GAP,
         width: CARRIER_RING_WIDTH,
         alpha: ringAlpha,
         angle: reduceMotion ? 0.9 : carrierRing.angle,
         variant: ringVariant,
+        rgb: teamRgb,
       });
     }
   }
@@ -1776,12 +1782,18 @@ function render(dt = 0) {
   }
 
   const ballRadius = 4.2 + Math.min(bz * 0.6, 3.0);
+  ctx.save();
+  ctx.shadowColor = 'rgba(255,255,255,0.55)';
+  ctx.shadowBlur = 8;
   ctx.beginPath();
   ctx.arc(bsx, bsy - bz * 3.0, ballRadius, 0, Math.PI * 2);
   ctx.fillStyle = '#FFFFFF';
   ctx.fill();
+  ctx.restore();
+  ctx.beginPath();
+  ctx.arc(bsx, bsy - bz * 3.0, ballRadius, 0, Math.PI * 2);
   ctx.strokeStyle = '#171437';
-  ctx.lineWidth = 1;
+  ctx.lineWidth = 1.2;
   ctx.stroke();
 
   drawHoveredPlayer();
@@ -1809,10 +1821,11 @@ function drawHoveredPlayer() {
   // Keep the hover affordance outside the possession ring when the cursor is
   // on the carrier, and only slightly larger than the body otherwise.
   const hoverRadius = carrierEmphasis.get(`${hp.team}:${hp.shirt}`) + 7;
+  const hoverRgb = TEAM_RGB[hp.team === 1 ? 'away' : 'home'].join(',');
   ctx.save();
   ctx.beginPath();
   ctx.arc(hx, hy, hoverRadius, 0, Math.PI * 2);
-  ctx.strokeStyle = 'rgba(82,180,245,0.95)';
+  ctx.strokeStyle = `rgba(${hoverRgb},0.95)`;
   ctx.lineWidth = 2;
   ctx.stroke();
   ctx.font = 'bold 11px Manrope, ui-sans-serif, system-ui, sans-serif';
@@ -1827,7 +1840,7 @@ function drawHoveredPlayer() {
   const boxX = Math.max(2, Math.min(els.canvas.width - boxW - 2, hx - boxW / 2));
   ctx.fillStyle = 'rgba(23,20,55,0.94)';
   ctx.fillRect(boxX, boxY, boxW, boxH);
-  ctx.strokeStyle = 'rgba(82,180,245,0.9)';
+  ctx.strokeStyle = `rgba(${hoverRgb},0.9)`;
   ctx.lineWidth = 1;
   ctx.strokeRect(boxX, boxY, boxW, boxH);
   ctx.fillStyle = '#F5F5F5';
@@ -1897,7 +1910,7 @@ function drawMomentum() {
   const H = el.height;
   c.clearRect(0, 0, W, H);
   const series = [momentum.home, momentum.away];
-  const colors = ['#FFFFFF', '#52B4F5'];
+  const colors = ['#52B4F5', '#C861D1'];
   const all = series.flat();
   if (all.length < 2) {
     c.fillStyle = 'rgba(115,115,115,0.8)';
@@ -1981,13 +1994,13 @@ function loop(now) {
       if (engine.get_is_finished()) {
         playing = false;
         els.playpause.textContent = '▶ Play';
-        setStatus('Full time — all events played.');
+        setStatus('Full time — all events played.', 'success');
       }
     }
 
     render(frame);
   } catch (e) {
-    setStatus(`Frame error: ${e && e.message ? e.message : e}`);
+    setStatus(`Frame error: ${e && e.message ? e.message : e}`, 'error');
   } finally {
     requestAnimationFrame(loop);
   }
@@ -2012,7 +2025,7 @@ for (const button of effectButtons) {
     clearPresetState();
     // Turning on a layer that has nothing to draw deserves an explanation.
     if (key === 'dribbles' && effects.isEnabled('dribbles') && dribbleIndex && !dribbleIndex.hasDribbleData) {
-      setStatus('This feed records no take-on or carry events — dribble zones and stats stay empty.');
+      setStatus('This feed records no take-on or carry events — dribble zones and stats stay empty.', 'warning');
     }
   });
 }
@@ -2033,7 +2046,7 @@ function hitTestPlayer(canvasX, canvasY) {
   if (!lastPlayers.length) return null;
   const [bx, by] = toBaseScreen(canvasX, canvasY);
   let best = null;
-  let bestD = 14 * 14; // base-screen px: grown carrier marker + slack
+  let bestD = 16 * 16; // base-screen px: grown carrier marker + slack
   for (const p of lastPlayers) {
     const [sx, sy] = toScreen(p.x, p.y);
     const d = (sx - bx) * (sx - bx) + (sy - by) * (sy - by);
@@ -2132,7 +2145,7 @@ function showPlayerMenu(player, ev) {
 
   addItem('Open player analysis', () => {
     if (pid) dribblePanel.open('player', { team: player.team, player: pid });
-    else setStatus('That player is not in the match roster.');
+    else setStatus('That player is not in the match roster.', 'warning');
   });
   addItem('Show team dribble zones', () => {
     effects.setEnabled('dribbles', true);
@@ -2396,8 +2409,8 @@ function exportPitchPng() {
   octx.textBaseline = 'middle';
   const y = src.height + bar / 2;
   const items = [
-    ['#FFFFFF', 'Home'],
-    ['#52B4F5', 'Away'],
+    ['#52B4F5', 'Home'],
+    ['#C861D1', 'Away'],
     ['#FFFFFF', 'Ball'],
     ['#8CC6FB', 'Pass lane'],
     ['#C861D1', 'Run lane'],
@@ -2439,7 +2452,7 @@ if (els.exportFrame) {
 }
 
 els.restart.addEventListener('click', () => {
-  if (lastXml) { try { startEngine(lastXml); } catch (e) { setStatus(String(e)); } }
+  if (lastXml) { try { startEngine(lastXml); } catch (e) { setStatus(String(e), 'error'); } }
 });
 els.speed.addEventListener('input', () => {
   speed = parseFloat(els.speed.value);
@@ -2451,7 +2464,7 @@ els.file.addEventListener('change', async (ev) => {
   try {
     startEngine(await file.text());
   } catch (e) {
-    setStatus(`Failed to load ${file.name}: ${e}`);
+    setStatus(`Failed to load ${file.name}: ${e}`, 'error');
   }
 });
 els.loadpath.addEventListener('click', loadFromPath);
@@ -2539,7 +2552,7 @@ async function loadFromPath() {
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     startEngine(await res.text());
   } catch (e) {
-    setStatus(`Failed to load ${path}: ${e}`);
+    setStatus(`Failed to load ${path}: ${e}`, 'error');
   }
 }
 
@@ -2579,7 +2592,7 @@ async function browseDirectory() {
 
 function showFileList(list) {
   if (!list.length) {
-    setStatus('No .xml files found in that folder.');
+    setStatus('No .xml files found in that folder.', 'warning');
     return;
   }
   els.filelist.innerHTML = '';
@@ -2591,12 +2604,12 @@ function showFileList(list) {
         const file = await item.getFile();
         startEngine(await file.text());
       } catch (e) {
-        setStatus(`Failed to load ${item.name}: ${e}`);
+        setStatus(`Failed to load ${item.name}: ${e}`, 'error');
       }
     });
     els.filelist.appendChild(btn);
   }
-  setStatus(`${list.length} XML file(s) found — click one to load it.`);
+  setStatus(`${list.length} XML file(s) found — click one to load it.`, 'success');
 }
 
 // ── Match browser ──────────────────────────────────────────
@@ -2669,7 +2682,7 @@ async function loadMatchFile(file) {
       c.classList.toggle('active', c.dataset.file === file)
     );
   } catch (e) {
-    setStatus(`Failed to load ${file}: ${e}`);
+    setStatus(`Failed to load ${file}: ${e}`, 'error');
   }
 }
 
@@ -2678,7 +2691,7 @@ async function main() {
     wasm = await init();
     await loadMatchManifest();
   } catch (e) {
-    setStatus(String(e.message || e));
+    setStatus(String(e.message || e), 'error');
   }
   requestAnimationFrame(loop);
 }

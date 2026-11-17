@@ -31,8 +31,8 @@ export const TRAIL_SMOOTH_TAU = 0.18; // seconds, critically-damped ease for the
 export const TRAIL_RECENT_WINDOW_S = 0.4; // seconds, speed is measured over this trailing slice
 export const TRAIL_MAX_JUMP_M = 12;
 
-export const BALL_MARKER_RADIUS = 5;
-export const CARRIER_MARKER_RADIUS = 9;
+export const BALL_MARKER_RADIUS = 7;
+export const CARRIER_MARKER_RADIUS = 12;
 export const CARRIER_TAU = 0.14;
 
 // Possession ring: a white/pink band that spins around the carrier's grown
@@ -316,7 +316,13 @@ const TAU = Math.PI * 2;
 import { hexCss, BRAND } from './brand.js';
 
 const RING_WHITE = '255,255,255';
-const RING_PINK = hexCss(BRAND.secondary); // Arena secondary (pink 500)
+const RING_DEFAULT = hexCss(BRAND.secondary); // Arena secondary (pink 500)
+
+/** Mix an 'r,g,b' colour toward white by t (0 = unchanged, 1 = white). */
+function tintTowardWhite(rgb, t) {
+  const parts = String(rgb).split(',').map(Number);
+  return parts.map((v) => Math.round(v + (255 - v) * t)).join(',');
+}
 
 function clamp01(value) {
   if (!Number.isFinite(value)) return 0;
@@ -368,12 +374,13 @@ function strokeRingArc(ctx, x, y, radius, width, alpha, angle, span, rgb) {
 }
 
 /**
- * Single rotating conic band: white and pink meet through blended intermediate
- * stops, so every edge of the ring is a gradient rather than a hard seam.
- * Returns false when the browser (or a headless canvas stub) has no conic
- * gradient support, letting the caller fall back to the dual-arc look.
+ * Single rotating conic band: white and the team colour meet through blended
+ * intermediate stops, so every edge of the ring is a gradient rather than a
+ * hard seam. Returns false when the browser (or a headless canvas stub) has
+ * no conic gradient support, letting the caller fall back to the dual-arc
+ * look.
  */
-function strokeConicRing(ctx, x, y, radius, width, alpha, angle) {
+function strokeConicRing(ctx, x, y, radius, width, alpha, angle, rgb) {
   if (typeof ctx.createConicGradient !== 'function') return false;
   let gradient;
   try {
@@ -382,19 +389,20 @@ function strokeConicRing(ctx, x, y, radius, width, alpha, angle) {
     return false;
   }
   if (!gradient || typeof gradient.addColorStop !== 'function') return false;
+  const light = tintTowardWhite(rgb, 0.75);
   gradient.addColorStop(0, 'rgba(255,255,255,0.98)');
-  gradient.addColorStop(0.16, 'rgba(239,194,240,0.98)');
-  gradient.addColorStop(0.33, 'rgba(200,97,209,0.99)');
+  gradient.addColorStop(0.16, `rgba(${light},0.98)`);
+  gradient.addColorStop(0.33, `rgba(${rgb},0.99)`);
   gradient.addColorStop(0.5, 'rgba(255,255,255,0.98)');
-  gradient.addColorStop(0.66, 'rgba(239,194,240,0.98)');
-  gradient.addColorStop(0.83, 'rgba(200,97,209,0.99)');
+  gradient.addColorStop(0.66, `rgba(${light},0.98)`);
+  gradient.addColorStop(0.83, `rgba(${rgb},0.99)`);
   gradient.addColorStop(1, 'rgba(255,255,255,0.98)');
 
   ctx.save();
   ctx.globalAlpha = alpha;
   ctx.strokeStyle = gradient;
   ctx.lineWidth = width;
-  ctx.shadowColor = 'rgba(200,97,209,0.7)';
+  ctx.shadowColor = `rgba(${rgb},0.7)`;
   ctx.shadowBlur = width * 2.4;
   ctx.beginPath();
   ctx.arc(x, y, radius, 0, TAU);
@@ -404,13 +412,15 @@ function strokeConicRing(ctx, x, y, radius, width, alpha, angle) {
 }
 
 /**
- * White/pink possession ring around a grown carrier marker.
+ * White/team-colour possession ring around a grown carrier marker.
  *
  * `variant: 'comet'` (default) is one continuous conic gradient band whose
- * white and pink stops blend into each other; `duo` is two counter-rotating
- * tapered arcs (white and pink) that brighten where they cross. Both spin at
- * the same speed, both respect `alpha` for the carrier hand-over fade, and
- * both fall back gracefully when conic gradients are unavailable.
+ * white and team-colour stops blend into each other; `duo` is two
+ * counter-rotating tapered arcs (white and team colour) that brighten where
+ * they cross. `rgb` is the carrier's team as an 'r,g,b' string (blue for
+ * home, pink for away); it defaults to Arena secondary. Both spin at the
+ * same speed, both respect `alpha` for the carrier hand-over fade, and both
+ * fall back gracefully when conic gradients are unavailable.
  */
 export function drawCarrierRing(ctx, x, y, options = {}) {
   if (!ctx || !Number.isFinite(x) || !Number.isFinite(y)) return false;
@@ -423,10 +433,11 @@ export function drawCarrierRing(ctx, x, y, options = {}) {
   if (alpha <= 0.01) return false;
   const angle = Number.isFinite(options.angle) ? options.angle : 0;
   const variant = options.variant === 'duo' ? 'duo' : 'comet';
+  const rgb = typeof options.rgb === 'string' && options.rgb ? options.rgb : RING_DEFAULT;
 
   ctx.save();
   ctx.setLineDash([]);
-  if (variant === 'comet' && strokeConicRing(ctx, x, y, radius, width, alpha, angle)) {
+  if (variant === 'comet' && strokeConicRing(ctx, x, y, radius, width, alpha, angle, rgb)) {
     ctx.restore();
     return true;
   }
@@ -442,7 +453,7 @@ export function drawCarrierRing(ctx, x, y, options = {}) {
 
   ctx.globalCompositeOperation = 'lighter';
   strokeRingArc(ctx, x, y, radius, width, alpha, angle, 2.5, RING_WHITE);
-  strokeRingArc(ctx, x, y, radius, width, alpha, Math.PI - angle, 2.5, RING_PINK);
+  strokeRingArc(ctx, x, y, radius, width, alpha, Math.PI - angle, 2.5, rgb);
   ctx.globalCompositeOperation = 'source-over';
   ctx.globalAlpha = 1;
   ctx.restore();

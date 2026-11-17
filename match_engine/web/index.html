@@ -7,7 +7,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
-  <title>God's Eye View - Opta F24 Simulation</title>
+  <title>ARENA · God's Eye View</title>
   <style>
     :root {
       color-scheme: dark;
@@ -32,13 +32,39 @@
     * { box-sizing: border-box; }
     body {
       margin: 0;
-      background: radial-gradient(circle at 50% 0%, #16202b 0%, #171437 70%);
+      background:
+        radial-gradient(1100px 620px at 50% -12%, rgba(82, 180, 245, 0.18), transparent 62%),
+        radial-gradient(900px 540px at 88% 4%, rgba(200, 97, 209, 0.13), transparent 58%),
+        radial-gradient(760px 520px at 8% 18%, rgba(142, 95, 236, 0.1), transparent 60%),
+        #171437;
       color: #E9E6F7;
       font-family: 'Manrope', system-ui, -apple-system, "Segoe UI", sans-serif;
       padding: 16px 20px;
       min-height: 100vh;
     }
     h1 { font-family: 'Bebas Neue', 'Arial Narrow', sans-serif; font-size: 26px; font-weight: 400; margin: 0 0 8px; letter-spacing: 2.5px; text-align: center; color: #FFFFFF; }
+    .brand-lockup {
+      display: flex; align-items: center; justify-content: center; gap: 12px;
+      margin: 0 0 12px;
+    }
+    .brand-mark {
+      width: 40px; height: 40px; flex: 0 0 auto;
+      filter: drop-shadow(0 6px 16px rgba(82, 180, 245, 0.28));
+    }
+    .brand-copy { display: flex; flex-direction: column; line-height: 1; text-align: left; }
+    .brand-word {
+      font-family: var(--arena-display); font-size: 36px; font-weight: 400;
+      letter-spacing: 6px; color: #FFFFFF;
+    }
+    .brand-sub {
+      margin-top: 3px; font-family: var(--arena-body); font-size: 9px; font-weight: 700;
+      letter-spacing: 3.4px; color: var(--arena-primary-soft);
+    }
+    .brand-kicker {
+      margin-left: 14px; padding-left: 14px; border-left: 1px solid var(--arena-border);
+      font-size: 9px; font-weight: 700; letter-spacing: 2.4px; text-transform: uppercase;
+      color: var(--arena-muted); align-self: stretch; display: flex; align-items: center;
+    }
     button, label.file, input, select, textarea { font-family: 'Manrope', system-ui, sans-serif; }
     #hud { display: flex; gap: 18px; align-items: center; flex-wrap: wrap; justify-content: center;
            margin: 0 0 10px; font-size: 13px; color: #A3A3A3; }
@@ -112,9 +138,9 @@
     }
     #analysis-team::before {
       content: ""; width: 8px; height: 8px; border-radius: 50%;
-      background: #FFFFFF; border: 1px solid rgba(0, 0, 0, 0.6);
+      background: #52B4F5; border: 1px solid rgba(0, 0, 0, 0.6);
     }
-    #analysis-team[data-team="1"]::before { background: #52B4F5; }
+    #analysis-team[data-team="1"]::before { background: #C861D1; }
     input[type="file"] { display: none; }
     input[type="text"] { background: #171437; color: #F5F5F5; border: 1px solid #322F68;
       border-radius: 6px; padding: 5px 8px; font-size: 13px; }
@@ -125,7 +151,10 @@
       padding: 5px 10px; font-size: 12px; cursor: pointer;
     }
     #filelist button:hover { background: #51468A; border-color: #8CC6FB; }
-    #status { min-height: 1.2em; font-size: 12px; color: #D63A3F; margin-bottom: 8px; text-align: center; }
+    #status { min-height: 1.2em; font-size: 12px; color: var(--arena-primary-soft); margin-bottom: 8px; text-align: center; }
+    #status.is-success { color: var(--arena-success); }
+    #status.is-warning { color: var(--arena-warning); }
+    #status.is-error { color: var(--arena-warning); }
     #momentum { width: 100%; background: #221B49; border: 1px solid #322F68; border-radius: 8px; }
     #sidebar .hint { font-weight: 400; font-size: 11px; color: #A3A3A3; }
 
@@ -138,8 +167,8 @@
     #possbar { display: inline-flex; width: 120px; height: 8px; border-radius: 4px;
       overflow: hidden; background: #322F68; vertical-align: middle; margin: 0 6px; }
     #possbar i { display: block; height: 100%; }
-    #posshome { background: #FFFFFF; }
-    #possaway { background: #52B4F5; }
+    #posshome { background: #52B4F5; }
+    #possaway { background: #C861D1; }
 
     /* Layout: pitch on the left, event panel on the right. */
     #app { display: flex; gap: 18px; align-items: flex-start; justify-content: center; flex-wrap: wrap; }
@@ -190,8 +219,8 @@
       display: flex; flex-direction: column;
       height: 680px; max-height: 80vh;
     }
-    #sidebar h2 { font-size: 12px; text-transform: uppercase; letter-spacing: 1px;
-      color: #A3A3A3; margin: 0 0 10px; font-weight: 600; }
+    #sidebar h2 { font-family: var(--arena-display); font-size: 17px; text-transform: uppercase; letter-spacing: 2px;
+      color: #F5F5F5; margin: 0 0 10px; font-weight: 400; }
     #feed { display: flex; flex-direction: column; gap: 4px; overflow-y: auto; max-height: 260px; }
     #feed .row {
       display: flex; gap: 8px; align-items: center;
@@ -199,8 +228,8 @@
       padding: 5px 9px; font-size: 12.5px;
       animation: feedIn 180ms ease;
     }
-    #feed .row.home { border-left-color: #FFFFFF; }
-    #feed .row.away { border-left-color: #52B4F5; }
+    #feed .row.home { border-left-color: #52B4F5; }
+    #feed .row.away { border-left-color: #C861D1; }
     #feed .row.notable { background: rgba(82, 180, 245, 0.18); font-weight: 600; }
     #feed .t { color: #A3A3A3; font-variant-numeric: tabular-nums; min-width: 34px; }
     #feed .lbl { color: #F5F5F5; }
@@ -216,8 +245,8 @@
       display: flex; flex-direction: column;
       max-height: 680px; max-height: 80vh;
     }
-    #match-browser h2 { font-size: 12px; text-transform: uppercase; letter-spacing: 1px;
-      color: #A3A3A3; margin: 0 0 10px; font-weight: 600; }
+    #match-browser h2 { font-family: var(--arena-display); font-size: 17px; text-transform: uppercase;
+      letter-spacing: 2px; color: #F5F5F5; margin: 0 0 10px; font-weight: 400; }
     #match-list { display: flex; flex-direction: column; gap: 6px; overflow-y: auto; flex: 1; }
     #match-list::-webkit-scrollbar { width: 8px; }
     #match-list::-webkit-scrollbar-thumb { background: #322F68; border-radius: 4px; }
@@ -254,7 +283,7 @@
     .heat-swatch {
       display: inline-block; width: 22px; height: 10px; margin-right: 6px; vertical-align: middle;
       border-radius: 2px; border: 1px solid #322F68;
-      background: linear-gradient(90deg, rgba(155, 217, 149, 0.9), rgba(200, 97, 209, 0.9) 48%, rgba(82, 180, 245, 0.9) 52%, rgba(50, 153, 224, 0.9));
+      background: linear-gradient(90deg, rgba(82, 180, 245, 0.9), rgba(50, 153, 224, 0.9) 48%, rgba(200, 97, 209, 0.9) 52%, rgba(173, 69, 231, 0.9));
     }
 
     :focus-visible { outline: 2px solid #52B4F5; outline-offset: 2px; }
@@ -734,7 +763,7 @@
     @keyframes r3dSpin { to { transform: rotate(360deg); } }
     .r3d-loading-title { font-size: 13px; font-weight: 650; letter-spacing: 0.3px; }
     .r3d-loading-sub { font-size: 11px; color: #737373; font-variant-numeric: tabular-nums; }
-    .r3d-error-title { font-size: 14px; font-weight: 700; color: #C861D1; }
+    .r3d-error-title { font-size: 14px; font-weight: 700; color: var(--arena-warning); }
     .r3d-error-sub { font-size: 11.5px; color: #A3A3A3; max-width: 460px; line-height: 1.55; }
 
     .r3d-controls {
@@ -788,7 +817,19 @@
   </style>
 </head>
 <body>
-  <h1>⚽ God's Eye View — Opta F24 Simulation</h1>
+  <header class="brand-lockup" aria-label="Arena — God's Eye View">
+    <svg class="brand-mark" viewBox="0 0 64 64" role="img" aria-hidden="true">
+      <path d="M8 8h40v40H28L8 28Z" fill="#8CC6FB" />
+      <path d="M24 8h32v32L40 56H24Z" fill="#52B4F5" />
+      <rect x="26" y="24" width="13" height="13" fill="#8E5FEC" />
+      <rect x="26" y="24" width="13" height="13" fill="none" stroke="#171437" stroke-width="3" />
+    </svg>
+    <span class="brand-copy">
+      <span class="brand-word">ARENA</span>
+      <span class="brand-sub">GOD'S EYE VIEW</span>
+    </span>
+    <span class="brand-kicker">Opta F24 · Match Intelligence</span>
+  </header>
   <div id="hud">
     <span class="scoreboard-wrap">
       <span id="teams"><strong id="homename">Home</strong><em>vs</em><strong id="awayname">Away</strong></span>
@@ -1072,8 +1113,8 @@
   </aside>
 
   <div class="legend">
-    <span><i class="swatch" style="background:#FFFFFF"></i>Home</span>
-    <span><i class="swatch" style="background:#52B4F5"></i>Away</span>
+    <span><i class="swatch" style="background:#52B4F5"></i>Home</span>
+    <span><i class="swatch" style="background:#C861D1"></i>Away</span>
     <span><i class="swatch" style="background:#FFFFFF"></i>Ball</span>
     <span class="legend-sep"></span>
     <span><i class="line-swatch" style="border-top-color:#8CC6FB"></i>Analysis</span>
@@ -1081,16 +1122,16 @@
     <span><i class="line-swatch" style="border-top-color:#8CC6FB"></i>Pass lane · prob. + target</span>
     <span><i class="line-swatch" style="border-top-color:#C861D1;border-top-style:dashed"></i>Run lane</span>
     <span><i class="line-swatch" style="border-top-color:#75C66E"></i>Vision field</span>
-    <span><i class="line-swatch" style="border-top-color:#ff6e6e;border-top-style:dotted"></i>Blind side</span>
-    <span><i class="swatch" style="background:#b478ff"></i>Player heat</span>
+    <span><i class="line-swatch" style="border-top-color:#E36B70;border-top-style:dotted"></i>Blind side</span>
+    <span><i class="swatch" style="background:#A77BF2"></i>Player heat</span>
     <span><i class="heat-swatch"></i>Heat · match so far</span>
     <span class="legend-sep"></span>
     <span><i class="swatch" style="background:#52B44C"></i>Won dribble</span>
     <span><i class="swatch" style="background:#D63A3F"></i>Lost dribble</span>
     <span><i class="swatch" style="background:#52B4F5"></i>Progressive carry</span>
-    <span><i class="heat-swatch" style="background:linear-gradient(90deg, rgba(155,217,149,0.75), rgba(200,97,209,0.75), rgba(214,58,63,0.75))"></i>Zones · dribble volume</span>
+    <span><i class="heat-swatch" style="background:linear-gradient(90deg, rgba(82,180,76,0.8), rgba(142,95,236,0.8) 48%, rgba(214,58,63,0.8))"></i>Zones · dribble volume</span>
   </div>
 
-  <script type="module" src="./app.js?v=31"></script>
+  <script type="module" src="./app.js?v=32"></script>
 </body>
 </html>

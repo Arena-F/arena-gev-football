@@ -55,12 +55,12 @@ function durationOf(clip) {
 
 function teamInfo(meta, team) {
   if (team === 0) {
-    return { name: (meta && meta.homeName) || 'Home', color: (meta && meta.homeColor) || '#FFFFFF' };
+    return { name: (meta && meta.homeName) || 'Home', color: (meta && meta.homeColor) || '#52B4F5' };
   }
   if (team === 1) {
-    return { name: (meta && meta.awayName) || 'Away', color: (meta && meta.awayColor) || '#52B4F5' };
+    return { name: (meta && meta.awayName) || 'Away', color: (meta && meta.awayColor) || '#C861D1' };
   }
-  return { name: 'Match', color: '#C861D1' };
+  return { name: 'Match', color: '#8E5FEC' };
 }
 
 export function createReplay3D({ recorder = null, getIndex = null } = {}) {
@@ -275,7 +275,7 @@ export function createReplay3D({ recorder = null, getIndex = null } = {}) {
     const t1 = theaterClip ? theaterClip.endT : 1;
     const X = (t) => 8 + ((t - t0) / Math.max(1e-6, t1 - t0)) * (W - 16);
     const Y = (v) => H - 8 - (v / max) * (H - 20);
-    for (const [series, color] of [[home, '#FFFFFF'], [away, '#52B4F5']]) {
+    for (const [series, color] of [[home, '#52B4F5'], [away, '#C861D1']]) {
       if (!series.length) continue;
       ctx.strokeStyle = color;
       ctx.lineWidth = 1.6;
@@ -286,7 +286,7 @@ export function createReplay3D({ recorder = null, getIndex = null } = {}) {
     }
     if (theaterClip) {
       const cx = X(Math.max(t0, Math.min(t1, theaterClip.startT + clipTime)));
-      ctx.strokeStyle = 'rgba(200, 97, 209, 0.8)';
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.8)';
       ctx.lineWidth = 1;
       ctx.beginPath();
       ctx.moveTo(cx, 4);

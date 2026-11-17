@@ -88,7 +88,7 @@ export function createMinimap(canvas, titleEl) {
     if (v === 'homeHeat' || v === 'awayHeat') {
       const team = v === 'homeHeat' ? 0 : 1;
       const heat = data.heat[team === 0 ? 'home' : 'away'];
-      const rgb = team === 0 ? [200, 97, 209] : [104, 189, 249];
+      const rgb = team === 0 ? [82, 180, 245] : [200, 97, 209];
       if (heat && heat.max > 0) {
         const cols = heat.cols;
         const rows = heat.rows;
@@ -115,7 +115,7 @@ export function createMinimap(canvas, titleEl) {
     } else if (v === 'homeShots' || v === 'awayShots') {
       const team = v === 'homeShots' ? 0 : 1;
       const shots = data.shots[team === 0 ? 'home' : 'away'];
-      const rgb = team === 0 ? '255,255,255' : '104,189,249';
+      const rgb = team === 0 ? '82,180,245' : '200,97,209';
       const goalX = team === 0 ? 52.5 : -52.5;
       for (const s of shots) {
         const [sx, sy] = toMini(s.x, s.y, W, H);
@@ -135,7 +135,7 @@ export function createMinimap(canvas, titleEl) {
     } else if (v === 'homePasses' || v === 'awayPasses') {
       const team = v === 'homePasses' ? 0 : 1;
       const passes = data.passes[team === 0 ? 'home' : 'away'];
-      const rgb = team === 0 ? '255,255,255' : '104,189,249';
+      const rgb = team === 0 ? '82,180,245' : '200,97,209';
       for (const p of passes) {
         const [sx, sy] = toMini(p.x, p.y, W, H);
         ctx.beginPath();
@@ -147,7 +147,7 @@ export function createMinimap(canvas, titleEl) {
     } else if (v === 'homeAttacks' || v === 'awayAttacks') {
       const team = v === 'homeAttacks' ? 0 : 1;
       const attacks = data.attacks[team === 0 ? 'home' : 'away'];
-      const rgb = team === 0 ? '229,168,232' : '104,189,249';
+      const rgb = team === 0 ? '82,180,245' : '200,97,209';
       for (const a of attacks) {
         const [sx, sy] = toMini(a.x, a.y, W, H);
         ctx.beginPath();
@@ -183,7 +183,7 @@ export function createMinimap(canvas, titleEl) {
     } else if (v === 'homeProgressive' || v === 'awayProgressive') {
       const team = v === 'homeProgressive' ? 0 : 1;
       const progs = data.progressive[team === 0 ? 'home' : 'away'];
-      const rgb = team === 0 ? '229,168,232' : '229,168,232';
+      const rgb = team === 0 ? '82,180,245' : '200,97,209';
       for (const p of progs) {
         const [sx, sy] = toMini(p.x, p.y, W, H);
         ctx.beginPath();
@@ -211,8 +211,8 @@ export function createMinimap(canvas, titleEl) {
             const cy = 2 + (r + 0.5) * ch;
             const rad = Math.max(cw, ch) * 1.6;
             const g = ctx.createRadialGradient(cx, cy, 0, cx, cy, rad);
-            g.addColorStop(0, `rgba(200,97,209,${a})`);
-            g.addColorStop(1, 'rgba(200,97,209,0)');
+            g.addColorStop(0, `rgba(82,180,245,${a})`);
+            g.addColorStop(1, 'rgba(82,180,245,0)');
             ctx.fillStyle = g;
             ctx.fillRect(cx - rad, cy - rad, rad * 2, rad * 2);
           }
@@ -233,8 +233,8 @@ export function createMinimap(canvas, titleEl) {
             const cy = 2 + (r + 0.5) * ch;
             const rad = Math.max(cw, ch) * 1.6;
             const g = ctx.createRadialGradient(cx, cy, 0, cx, cy, rad);
-            g.addColorStop(0, `rgba(104,189,249,${a})`);
-            g.addColorStop(1, 'rgba(104,189,249,0)');
+            g.addColorStop(0, `rgba(200,97,209,${a})`);
+            g.addColorStop(1, 'rgba(200,97,209,0)');
             ctx.fillStyle = g;
             ctx.fillRect(cx - rad, cy - rad, rad * 2, rad * 2);
           }
@@ -265,7 +265,7 @@ export function createMinimap(canvas, titleEl) {
     } else if (v === 'homeShotMap' || v === 'awayShotMap') {
       const team = v === 'homeShotMap' ? 0 : 1;
       const shots = data.shots[team === 0 ? 'home' : 'away'];
-      const rgb = team === 0 ? '255,255,255' : '104,189,249';
+      const rgb = team === 0 ? '82,180,245' : '200,97,209';
       const goalX = team === 0 ? 52.5 : -52.5;
       for (const s of shots) {
         const [sx, sy] = toMini(s.x, s.y, W, H);

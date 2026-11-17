@@ -63,8 +63,8 @@ export function hexA(hex, alpha) {
 }
 
 // ── Semantic tokens ──────────────────────────────────────────────
-// Primary = blue, Secondary = pink, accent violet. Home wears white,
-// away wears primary; the ball is always white.
+// Primary = blue, Secondary = pink, accent violet. Home wears primary blue,
+// away wears secondary pink; the ball is always white.
 
 export const BRAND = Object.freeze({
   background: ARENA.violet[900],
@@ -87,8 +87,8 @@ export const BRAND = Object.freeze({
 
   accent: ARENA.purple[500],
 
-  home: ARENA.grey[50],
-  away: ARENA.blue[500],
+  home: ARENA.blue[500],
+  away: ARENA.pink[500],
   ball: ARENA.grey[50],
 
   success: ARENA.success[500],
@@ -111,10 +111,10 @@ export const NETWORK_RGB = Object.freeze({
   fwd: Object.freeze(hexRgb(ARENA.pink[500])),
 });
 
-/** Team colours as [r, g, b]: home white, away primary. */
+/** Team colours as [r, g, b]: home primary blue, away secondary pink. */
 export const TEAM_RGB = Object.freeze({
-  home: Object.freeze([255, 255, 255]),
-  away: Object.freeze(hexRgb(ARENA.blue[500])),
+  home: Object.freeze(hexRgb(ARENA.blue[500])),
+  away: Object.freeze(hexRgb(ARENA.pink[500])),
 });
 
 /** Type stacks. Display = Bebas Neue; body = Manrope. */

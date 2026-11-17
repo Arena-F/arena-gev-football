@@ -303,6 +303,26 @@ test('comet ring falls back to dual arcs when conic gradients are missing', () =
   assert.ok(calls.filter(([name]) => name === 'arc').length > 20);
 });
 
+test('carrier ring follows the team colour: blue for home, pink for away', () => {
+  const { ctx, calls, gradients } = makeRingCtx();
+  assert.equal(drawCarrierRing(ctx, 100, 120, {
+    radius: 12, alpha: 1, angle: 0.4, rgb: '82,180,245',
+  }), true);
+  assert.equal(gradients.length, 1);
+  assert.ok(gradients[0].stops.some(([, color]) => color.includes('82,180,245')),
+    'home ring blends primary blue');
+  assert.ok(!gradients[0].stops.some(([, color]) => color.includes('200,97,209')),
+    'home ring carries no pink');
+  const { ctx: ctx2, calls: calls2 } = makeRingCtx();
+  assert.equal(drawCarrierRing(ctx2, 0, 0, {
+    radius: 12, alpha: 0.8, angle: 1, variant: 'duo', rgb: '82,180,245',
+  }), true);
+  const styles = calls2
+    .filter(([name, prop]) => name === 'set' && prop === 'strokeStyle')
+    .map(([, , value]) => String(value));
+  assert.ok(styles.some((s) => s.includes('82,180,245')), 'duo blue arc drawn');
+});
+
 test('possession ring is invisible at zero alpha and ignores bad coordinates', () => {
   const { ctx, calls } = makeCtx();
   assert.equal(drawCarrierRing(ctx, 0, 0, { radius: 12, alpha: 0 }), false);
