@@ -18,6 +18,7 @@ import {
   visionCone,
 } from './analysis.js';
 import {
+  createNetworkFade,
   drawAnalysis,
   drawAttackChannels,
   drawAttackLanes,
@@ -43,7 +44,22 @@ import { createAttackLaneTracker } from './attackLanes.js';
 import { createAttackChannelTracker } from './attackChannels.js';
 import { createMinimap } from './minimap.js';
 import { createHighlightTracker } from './highlights.js';
+import { createClipRecorder } from './replay3d/clipStore.js';
+import { createReplay3D } from './replay3d/replay3d.js';
 import { createEffectController } from './effects.js';
+import {
+  CARRIER_RING_GAP,
+  CARRIER_RING_WIDTH,
+  TRAIL_SMOOTH_TAU,
+  createBallTrail,
+  createCarrierEmphasis,
+  createCarrierRing,
+  drawBallTrail,
+  drawCarrierRing,
+  easeTrailFade,
+  nearestCarrier,
+  trailFadeForSpeed,
+} from './ballMotion.js';
 import { getVariant, resetVariants, setVariant, variantKeys, variantsOf } from './variants.js';
 import { fieldTheme } from './fieldThemes.js';
 import { PRESETS, clearStoredPreset, readStoredPreset, storePreset } from './presets.js';
@@ -412,6 +428,8 @@ let splashTimer = null;
 // hold and crossfade so turnovers never flicker the whole analysis layer.
 let playerRoles = [];
 let lastRoleSeq = -1;
+let lastRolePoll = -Infinity;
+const ROLE_POLL_DT = 0.2; // re-read roles this often: formation changes are silent
 let formations = ['—', '—'];
 let displayTeam = 0;
 let overlayTeamPrev = 0;
@@ -431,6 +449,11 @@ const highlighter = createHighlightTracker(
   document.getElementById('highlight'),
   document.getElementById('highlight-title'),
 );
+// 3D replay clips are recorded from the same snapshots the pitch draws, at
+// 10 Hz, so the experiment never seeks or re-simulates the engine.
+const REPLAY_TEAM_COLORS = ['#f2f2f2', '#2f81f7'];
+const replayRecorder = createClipRecorder({ preSecs: 15, postSecs: 15 });
+const replay3d = createReplay3D({ recorder: replayRecorder, getIndex: () => dribbleIndex });
 let offsideX = NaN;
 let offsideAlpha = 0;
 let offsideVisible = false;
@@ -443,6 +466,7 @@ const celebrations = createCelebrationTracker();
 const fx = createFxTracker();
 const momentum = createMomentumTracker();
 const passingNet = createPassingNetwork();
+const networkFade = createNetworkFade();
 const attackLanesFx = createAttackLaneTracker();
 const attackChannelsFx = createAttackChannelTracker();
 let networkPulse = null;
@@ -454,6 +478,7 @@ const LAYER_LABELS = Object.freeze({
   network: 'Passing network',
   heatmap: 'Heatmap',
   analysis: 'Analysis',
+  carrierRing: 'Possession ring',
   field: 'Field',
 });
 
@@ -471,12 +496,14 @@ const VARIANT_HINTS = Object.freeze({
   'runChannels:heat-landing': 'Only the landing zone glows; no run path.',
   'runChannels:ghosts': 'Dotted trace plus fading arrival echoes.',
   'runChannels:minimal': 'Thin trace without arrowheads or landing wash.',
-  'network:outlet': 'One strongest outlet wire per player in this possession.',
-  'network:mesh': 'Complete match-long team web, including zero-pass pairs.',
+  'network:outlet': 'One strongest same-unit outlet wire per player in this possession (DEF teal, MID violet, ATT rose).',
+  'network:mesh': 'Dynamic DEF / MID / FWD bands chained end to end, with tiered strength; pairs that combine earn stronger wires.',
   'heatmap:raster': 'Smoothed density raster.',
   'heatmap:hexbin': 'Hexagonal density bins.',
   'analysis:classic': 'Carrier ring, threat label, press ring and hull.',
   'analysis:minimal': 'Carrier ring and hull without threat text or press ring.',
+  'carrierRing:comet': 'One blended white→pink conic band spinning around the carrier.',
+  'carrierRing:duo': 'White and pink tapered arcs counter-spinning with a bright cross.',
   'field:classic': 'Dark, desaturated pitch.',
   'field:broadcast': 'Brighter broadcast green.',
   'field:night': 'Very dark night-match pitch.',
@@ -574,6 +601,22 @@ let lastChannelCompute = -Infinity;
 let lastChannelData = [];
 // Frame-to-frame velocity per team:shirt (the render buffer has no velocity).
 const playerVelocity = new Map();
+// Ball presentation: a long white trail plus a gentle marker bump and a
+// white/pink possession ring on the player in possession. All live in
+// ballMotion.js and are independently toggleable from the effects bar.
+const ballTrail = createBallTrail();
+// Smoothed 0..1 trail envelope: eased toward the speed target every frame so
+// a checking ball dissolves back to the ball instead of blinking off.
+let trailShown = 0;
+const carrierEmphasis = createCarrierEmphasis();
+const carrierRing = createCarrierRing();
+const reduceMotionQuery = typeof window !== 'undefined' && typeof window.matchMedia === 'function'
+  ? window.matchMedia('(prefers-reduced-motion: reduce)')
+  : null;
+let reduceMotion = reduceMotionQuery ? reduceMotionQuery.matches === true : false;
+if (reduceMotionQuery && typeof reduceMotionQuery.addEventListener === 'function') {
+  reduceMotionQuery.addEventListener('change', (ev) => { reduceMotion = ev.matches === true; });
+}
 let visionAlpha = 0;
 let lastVisionCone = null;
 let lastVisionField = null;
@@ -626,8 +669,10 @@ function resetOverlayState() {
   teamBlend = 1;
   lastTeamChip = '';
   lastRoleSeq = -1;
+  lastRolePoll = -Infinity;
   playerRoles = [];
   formations = ['—', '—'];
+  networkFade.reset();
 }
 
 /** Accumulate both teams' positions at most every 0.25 s of match time. */
@@ -723,6 +768,9 @@ function updateFollowedTeam(possessionTeam, dt) {
         // passing sequence (the network hides immediately while the old team
         // is out of possession, and the streak resets on this switch).
         passingNet.breakRetention();
+        // A new team owns a new set of unit webs: drop the fade state so the
+        // old team's wires never linger under the new team's colours.
+        networkFade.reset();
         // Transient overlays belong to the old team; never show them under
         // the new team's colours during the crossfade. Pass lanes are retained
         // as fading ghosts so a turnover reads as a handover, not a vanish.
@@ -817,11 +865,11 @@ function drawOverlays(players, possessionTeam, setPieceActive, dt, ball) {
   const stillInPossession = possessionTeam === displayTeam;
   if (effects.isVisible('network') && netAlpha > 0.01 && stillInPossession) {
     // The live squad seeds the node set: every shirt is a node, even before
-    // its first touch. Outlet mode keeps one wire per player in this
-    // possession; the Full mesh variant restores the match-long pair web.
+    // its first touch. Roles split the web into DEF / MID / FWD unit webs;
+    // outlet mode keeps one same-unit wire per player in this possession.
     const roster = players
       .filter((p) => p.team === displayTeam)
-      .map((p) => ({ team: p.team, shirt: p.shirt, x: p.x, y: p.y }));
+      .map((p) => ({ team: p.team, shirt: p.shirt, x: p.x, y: p.y, role: p.role }));
     const networkMode = getVariant('network') === 'mesh' ? 'mesh' : 'outlet';
     const simNow = typeof engine?.get_sim_time === 'function' ? engine.get_sim_time() : 0;
     const snap = passingNet.snapshot(8, displayTeam, roster, networkMode, simNow);
@@ -836,6 +884,7 @@ function drawOverlays(players, possessionTeam, setPieceActive, dt, ball) {
     }
     drawPassingNetwork(
       ctx, toScreen, snap, netAlpha, displayTeam, livePositions, netPulse,
+      { fade: networkFade, dt },
     );
   }
 
@@ -884,24 +933,29 @@ function drawOverlays(players, possessionTeam, setPieceActive, dt, ball) {
   if (effects.isVisible('analysis')) {
     for (const { team, alpha } of teams) {
       // The attacking lanes + vision cone replace the static thread and
-      // triangle, so the analysis layer stays legible.
-      drawAnalysis(ctx, toScreen, players, team, alpha, ball, possessionTeam, { links: false }, getVariant('analysis'));
+      // triangle, so the analysis layer stays legible. The carrier ring sits
+      // outside both the grown body and the white/pink possession band, so no
+      // two markers ever overlap.
+      const ringRadius = effects.isEnabled('carrierGrow') ? 16 : 7;
+      drawAnalysis(ctx, toScreen, players, team, alpha, ball, possessionTeam, { links: false, ringRadius }, getVariant('analysis'));
     }
   }
 }
 
-/** Role cache: refresh only when an event (e.g. a substitution) changes. */
-function refreshRoles(players) {
+/** Role cache: refresh on events and by polling for silent formation changes. */
+function refreshRoles(players, simNow = NaN) {
   const seq = typeof engine.get_event_seq === 'function'
     ? seqNumber(engine.get_event_seq())
     : -1;
-  if (seq === lastRoleSeq && playerRoles.length === players.length) {
+  const pollDue = Number.isFinite(simNow) && (simNow - lastRolePoll) >= ROLE_POLL_DT;
+  if (seq === lastRoleSeq && playerRoles.length === players.length && !pollDue) {
     // Player snapshots are rebuilt every frame; always re-apply the cache.
     applyRoles(players, playerRoles);
     return;
   }
 
   lastRoleSeq = seq;
+  if (Number.isFinite(simNow)) lastRolePoll = simNow;
   const roles = new Array(players.length).fill(ROLE.UNKNOWN);
   let anyKnown = false;
   if (typeof engine.get_player_role === 'function') {
@@ -913,11 +967,17 @@ function refreshRoles(players) {
   }
   if (!anyKnown) inferRoles(players, roles);
 
+  // Formation-change rows retune roles without touching the event feed, so
+  // the HUD shape must follow role changes even when the cursor is stale.
+  const changed = roles.length !== playerRoles.length ||
+    roles.some((r, i) => r !== playerRoles[i]);
   playerRoles = roles;
   applyRoles(players, roles);
-  formations = [0, 1].map((team) =>
-    formationLabel(players.filter((p) => p.team === team)),
-  );
+  if (changed) {
+    formations = [0, 1].map((team) =>
+      formationLabel(players.filter((p) => p.team === team)),
+    );
+  }
 }
 
 /** Position-only fallback for an older wasm package without role getters. */
@@ -967,6 +1027,7 @@ function startEngine(xml) {
   fx.reset();
   momentum.reset();
   passingNet.reset();
+  networkFade.reset();
   attackLanesFx.reset();
   attackChannelsFx.reset();
   playerHeat.reset();
@@ -985,6 +1046,8 @@ function startEngine(xml) {
   lastVisionField = null;
   visionFocus = null;
   if (highlighter) { highlighter.buffer.length = 0; }
+  replayRecorder.reset({ clearClips: true });
+  replay3d.reset();
   lastPasser[0] = { id: '', pos: null };
   lastPasser[1] = { id: '', pos: null };
   els.feed.innerHTML = '';
@@ -998,6 +1061,10 @@ function startEngine(xml) {
   lastRenderedLanes = [];
   if (els.freezeFrame) els.freezeFrame.textContent = '❄ Freeze frame';
   syncFreezeHistoryButtons();
+  ballTrail.clear();
+  trailShown = 0;
+  carrierEmphasis.reset();
+  carrierRing.reset();
   // Label the HUD with the match metadata straight from the engine.
   els.homeName.textContent = engine.get_home_team_name() || 'Home';
   els.awayName.textContent = engine.get_away_team_name() || 'Away';
@@ -1051,7 +1118,7 @@ function updateEvents() {
   els.feed.innerHTML = rows.join('');
 
   // Highlight replay: collect notable events with a frozen frame.
-  if (highlighter && count > 0) {
+  if (count > 0) {
     const i = count - 1;
     const notable = engine.get_recent_event_notable(i);
     const type = engine.get_recent_event_type(i);
@@ -1063,7 +1130,40 @@ function updateEvents() {
       const team = engine.get_recent_event_team(i);
       const x = engine.get_last_event_origin_x();
       const y = engine.get_last_event_origin_y();
-      highlighter.push({ t, type, label, team, players: lastPlayers.map((p) => ({ x: p.x, y: p.y, team: p.team, shirt: p.shirt })), ball: lastBall ? { x: lastBall.x, y: lastBall.y } : null, x, y });
+      if (highlighter) {
+        highlighter.push({ t, type, label, team, players: lastPlayers.map((p) => ({ x: p.x, y: p.y, team: p.team, shirt: p.shirt })), ball: lastBall ? { x: lastBall.x, y: lastBall.y } : null, x, y });
+      }
+      // The 3D replay recorder owns a 15 s before / 15 s after window around
+      // this event. Nearby moments upgrade the same clip instead of stacking.
+      // The meta carries match-long context (heat so far, the analysis index)
+      // so the 3D theatre can project the same analysis as the live GEV.
+      replayRecorder.notifyEvent({
+        t,
+        type,
+        label,
+        team,
+        x,
+        y,
+        notable,
+        player: typeof engine.get_recent_event_player === 'function'
+          ? engine.get_recent_event_player(i)
+          : '',
+        meta: {
+          homeName: els.homeName.textContent || 'Home',
+          awayName: els.awayName.textContent || 'Away',
+          homeColor: REPLAY_TEAM_COLORS[0],
+          awayColor: REPLAY_TEAM_COLORS[1],
+          scoreHome: engine.get_score_home(),
+          scoreAway: engine.get_score_away(),
+          competition: els.matchInfo.textContent || '',
+          roles: Array.isArray(playerRoles) ? playerRoles.slice() : [],
+          heat: {
+            home: { cols: heat[0].cols, rows: heat[0].rows, max: heat[0].max, grid: heat[0].grid.slice() },
+            away: { cols: heat[1].cols, rows: heat[1].rows, max: heat[1].max, grid: heat[1].grid.slice() },
+          },
+          index: dribbleIndex,
+        },
+      });
     }
   }
   // Track minimap data.
@@ -1143,7 +1243,7 @@ function triggerSequences() {
       const prev = lastPasser[team];
       if (prev.id && prev.id !== playerId && prev.pos) {
         passingNet.observePass(
-          { ...prev.pos, team, shirt: prev.shirt },
+          { ...prev.pos, team, shirt: prev.shirt, role: prev.role },
           { ...p, shirt: p.shirt },
           t,
         );
@@ -1167,7 +1267,7 @@ function triggerSequences() {
           }
         }
       }
-      lastPasser[team] = { id: playerId, shirt: p.shirt, pos: { x: p.x, y: p.y } };
+      lastPasser[team] = { id: playerId, shirt: p.shirt, pos: { x: p.x, y: p.y }, role: p.role };
     } else if (team === 0 || team === 1) {
       lastPasser[team] = { id: '', pos: null };
     }
@@ -1304,6 +1404,10 @@ function render(dt = 0) {
   const ball = { x: buffer[bo], y: buffer[bo + 1], z: buffer[bo + 2] };
   lastPlayers = players;
   lastBall = ball;
+  // Feed the 3D replay ring at 10 Hz. This is a pure JS copy of the snapshot
+  // the pitch already drew; it never touches the engine.
+  replayRecorder.observe(simNow, players, ball);
+  replay3d.update(simNow);
   // Half-time choreography detection.
   if (engine && typeof engine.get_current_period === 'function') {
     const curPeriod = engine.get_current_period();
@@ -1340,7 +1444,7 @@ function render(dt = 0) {
   const subFx = substitutions.update(players, dt);
   const hiddenSlots = substitutions.hiddenSlots();
 
-  refreshRoles(players);
+  refreshRoles(players, simNow);
 
   const possessionTeam =
     typeof engine.get_possession_team === 'function' ? engine.get_possession_team() : -1;
@@ -1541,9 +1645,60 @@ function render(dt = 0) {
   ctx.filter = 'none';
   ctx.globalCompositeOperation = 'source-over';
   ctx.setLineDash([]);
+
+  // ── Ball presentation: trail history + carrier emphasis ───────
+  // Wall-clock time keeps the trail the same visual length at every playback
+  // speed; pausing freezes it instead of letting it evaporate while the
+  // analyst is reading the frame. The 1.5 s history makes the streak scale
+  // with speed (a soft pass leaves a short tail, a driven shot a very long
+  // one), and the eased fade dissolves it back to the ball on the check.
+  const trailOn = effects.isEnabled('ballTrail') && !reduceMotion;
+  if (trailOn) {
+    const nowMs = performance.now();
+    if (playing) {
+      ballTrail.push(ball, nowMs);
+      ballTrail.prune(nowMs);
+      trailShown = easeTrailFade(trailShown, trailFadeForSpeed(ballTrail.speed()), dt, TRAIL_SMOOTH_TAU);
+    }
+  } else {
+    ballTrail.clear();
+    trailShown = 0;
+  }
+
+  // The emphasis follows the ball itself, not the followed team: whichever
+  // shirt is at the ball grows, and the previous carrier eases back. The
+  // halftime walk-off is drawn from different positions than the engine
+  // reports, so no body is emphasised while the choreography runs.
+  const growOn = effects.isEnabled('carrierGrow');
+  const ballCarrier = growOn && !halftimeActive ? nearestCarrier(overlayPlayers, ball) : null;
+  const carrierKey = ballCarrier ? `${ballCarrier.team}:${ballCarrier.shirt}` : null;
+  const visibleKeys = [];
+  for (let i = 0; i < players.length; i++) {
+    if (hiddenSlots.has(i)) continue;
+    visibleKeys.push(`${players[i].team}:${players[i].shirt}`);
+  }
+  // `dt` is wall time, so the radius settles even while the sim is paused and
+  // never waits for playback to resume before shrinking the old carrier.
+  carrierEmphasis.update(growOn ? carrierKey : null, visibleKeys, dt, { snap: reduceMotion });
+  // The ring's spin is match-playback time: pausing freezes it, and reduced
+  // motion keeps a fixed angle so the band still marks the carrier.
+  if (!reduceMotion) carrierRing.update(playing ? dt : 0);
+  const ringVariant = getVariant('carrierRing');
+  const ringSpan = carrierEmphasis.emphasis - carrierEmphasis.base;
+
   for (let i = 0; i < players.length; i++) {
     if (hiddenSlots.has(i)) continue;
     const p = players[i];
+    const markerRadius = carrierEmphasis.get(`${p.team}:${p.shirt}`);
+    const markerScale = markerRadius / carrierEmphasis.base;
+    // Ownership alpha for the possession ring: 0 at the base radius, 1 at full
+    // carrier size, smooth-stepped so the old ring fades as the new one grows.
+    // Not gated on the toggle, so switching Carrier grow off fades the ring out
+    // with the shrinking body instead of popping it away.
+    const growT = ringSpan > 0
+      ? Math.max(0, Math.min(1, (markerRadius - carrierEmphasis.base) / ringSpan))
+      : 0;
+    const ringAlpha = growT * growT * (3 - 2 * growT);
     let px = p.x, py = p.y;
     if (halftimeActive && halftimeStartPositions[i]) {
       const simT = engine.get_sim_time();
@@ -1563,14 +1718,15 @@ function render(dt = 0) {
 
     // Soft foot shadow lifts the player off the pitch.
     ctx.beginPath();
-    ctx.ellipse(sx + 1.2, sy + 1.8, 4.6, 2.6, 0, 0, Math.PI * 2);
+    ctx.ellipse(sx + 1.2, sy + 1.8, 4.6 * markerScale, 2.6 * markerScale, 0, 0, Math.PI * 2);
     ctx.fillStyle = 'rgba(0,0,0,0.28)';
     ctx.fill();
 
     // Player marker: 5 px ≈ 0.54 m radius at this pitch scale, much closer
-    // to a real body than the old 7 px disc.
+    // to a real body than the old 7 px disc. The carrier eases a lot larger
+    // (9 px) so the man on the ball is readable at a glance.
     ctx.beginPath();
-    ctx.arc(sx, sy, 5, 0, Math.PI * 2);
+    ctx.arc(sx, sy, markerRadius, 0, Math.PI * 2);
     ctx.fillStyle = p.team === 0 ? '#f2f2f2' : '#2f81f7';
     ctx.fill();
     ctx.strokeStyle = 'rgba(0,0,0,0.75)';
@@ -1585,6 +1741,26 @@ function render(dt = 0) {
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.fillText(String(p.shirt), sx, sy);
+
+    // Possession ring: white/pink band that rides the eased carrier radius, so
+    // it grows with the body and fades out as possession hands over.
+    if (ringAlpha > 0.01) {
+      drawCarrierRing(ctx, sx, sy, {
+        radius: markerRadius + CARRIER_RING_GAP,
+        width: CARRIER_RING_WIDTH,
+        alpha: ringAlpha,
+        angle: reduceMotion ? 0.9 : carrierRing.angle,
+        variant: ringVariant,
+      });
+    }
+  }
+
+  // Ball trail: a long soft-white streak under the ball, drawn from the real
+  // trajectory so passes that bend in the air bend the line with them. The
+  // history is long, so the streak stretches with speed, and the eased fade
+  // shrinks it smoothly back to the ball as play checks.
+  if (trailOn && trailShown > 0.02) {
+    drawBallTrail(ctx, toScreen, ballTrail.points, { fade: trailShown });
   }
 
   // Ball (pinned to the final slot by the buffer layout).
@@ -1592,14 +1768,14 @@ function render(dt = 0) {
   const bz = ball.z;
 
   if (bz > 0.05) {
-    const shadowSize = Math.max(2, 4 - bz * 0.3);
+    const shadowSize = Math.max(2.4, 4.8 - bz * 0.3);
     ctx.beginPath();
     ctx.ellipse(bsx + bz * 1.2, bsy + bz * 1.2, shadowSize * 1.5, shadowSize, 0, 0, Math.PI * 2);
     ctx.fillStyle = 'rgba(0,0,0,0.4)';
     ctx.fill();
   }
 
-  const ballRadius = 2.8 + Math.min(bz * 0.6, 3.0);
+  const ballRadius = 4.2 + Math.min(bz * 0.6, 3.0);
   ctx.beginPath();
   ctx.arc(bsx, bsy - bz * 3.0, ballRadius, 0, Math.PI * 2);
   ctx.fillStyle = '#ffea00';
@@ -1630,9 +1806,12 @@ function drawHoveredPlayer() {
   const [hx, hy] = toScreen(hp.x, hp.y);
   const entry = dribbleIndex?.playerByKey(hp.team, hp.shirt);
   const label = entry?.name ? `${entry.name} · #${hp.shirt}` : `#${hp.shirt}`;
+  // Keep the hover affordance outside the possession ring when the cursor is
+  // on the carrier, and only slightly larger than the body otherwise.
+  const hoverRadius = carrierEmphasis.get(`${hp.team}:${hp.shirt}`) + 7;
   ctx.save();
   ctx.beginPath();
-  ctx.arc(hx, hy, 10, 0, Math.PI * 2);
+  ctx.arc(hx, hy, hoverRadius, 0, Math.PI * 2);
   ctx.strokeStyle = 'rgba(47,129,247,0.95)';
   ctx.lineWidth = 2;
   ctx.stroke();
@@ -1854,7 +2033,7 @@ function hitTestPlayer(canvasX, canvasY) {
   if (!lastPlayers.length) return null;
   const [bx, by] = toBaseScreen(canvasX, canvasY);
   let best = null;
-  let bestD = 11 * 11; // base-screen px: 5 px marker + slack
+  let bestD = 14 * 14; // base-screen px: grown carrier marker + slack
   for (const p of lastPlayers) {
     const [sx, sy] = toScreen(p.x, p.y);
     const d = (sx - bx) * (sx - bx) + (sy - by) * (sy - by);
@@ -2314,6 +2493,7 @@ function seekTo(target, message) {
   fx.reset();
   momentum.reset();
   passingNet.reset();
+  networkFade.reset();
   attackLanesFx.reset();
   attackChannelsFx.reset();
   playerHeat.reset();
@@ -2332,8 +2512,14 @@ function seekTo(target, message) {
   lastVisionField = null;
   visionFocus = null;
   if (highlighter) { highlighter.buffer.length = 0; }
+  replayRecorder.reset();
+  replay3d.reset();
   lastPasser[0] = { id: '', pos: null };
   lastPasser[1] = { id: '', pos: null };
+  ballTrail.clear();
+  trailShown = 0;
+  carrierEmphasis.reset();
+  carrierRing.reset();
   els.feed.innerHTML = '';
   setStatus(message ?? `Jumped to ${Math.floor(clamped / 60)} min`);
   // A seek rebuilds the engine; the HUD must show the new point immediately
@@ -2514,6 +2700,12 @@ window.__gev = {
   get laneFx() { return attackLanesFx; },
   get attackChannels() { return lastChannelData; },
   get channelFx() { return attackChannelsFx; },
+  get effects() { return effects; },
+  get ballTrail() { return ballTrail; },
+  get carrierEmphasis() { return carrierEmphasis; },
+  get carrierRing() { return carrierRing; },
+  get replayRecorder() { return replayRecorder; },
+  get replay3d() { return replay3d; },
   get displayTeam() { return displayTeam; },
   get teamBlend() { return teamBlend; },
   toScreen,

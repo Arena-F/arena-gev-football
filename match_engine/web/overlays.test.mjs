@@ -5,6 +5,7 @@ import { ROLE, raycastVision, visionCone } from './analysis.js';
 import { createPassingNetwork } from './graphs.js';
 import { createHeatmap } from './heatmap.js';
 import {
+  createNetworkFade,
   drawAnalysis,
   drawAttackChannels,
   drawAttackLanes,
@@ -15,6 +16,7 @@ import {
   drawFrozenFrame,
   drawVisionField,
   laneTargetHits,
+  NETWORK_UNIT_CSS,
 } from './overlays.js';
 
 function makeCtx() {
@@ -166,6 +168,198 @@ test('drawPassingNetwork pulses a pass that is not a retained outlet wire', () =
   drawPassingNetwork(ctx, toScreen, snap, 1, 0, null, { a: '0:9', b: '0:6', progress: 0.5 });
   // The transient ghost thread and its bead keep the pass visible even though
   // 9→6 is nobody's top outlet in this window.
+  assert.ok(calls.some(([n, , , r]) => n === 'arc' && Math.abs(r - 3) < 1e-9));
+});
+
+test('unit webs draw defenders and midfielders in different colours', () => {
+  const { ctx } = makeCtx();
+  const strokes = [];
+  const proxy = new Proxy(ctx, {
+    get(target, prop) {
+      if (prop === 'strokeStyle') return target[prop];
+      if (typeof prop === 'string') {
+        return (...args) => target[prop](...args);
+      }
+      return target[prop];
+    },
+    set(target, prop, value) {
+      if (prop === 'strokeStyle') strokes.push(String(value));
+      target[prop] = value;
+      return true;
+    },
+  });
+  const net = createPassingNetwork();
+  const p = (x, y, shirt, role) => ({ x, y, team: 0, shirt, role });
+  for (let i = 0; i < 5; i++) net.observePass(p(-30, -12, 4, 2), p(-30, 12, 5, 2));
+  for (let i = 0; i < 5; i++) net.observePass(p(-5, -8, 8, 3), p(-5, 8, 6, 3));
+  const roster = [
+    { team: 0, shirt: 4, x: -30, y: -12, role: 2 },
+    { team: 0, shirt: 5, x: -30, y: 12, role: 2 },
+    { team: 0, shirt: 8, x: -5, y: -8, role: 3 },
+    { team: 0, shirt: 6, x: -5, y: 8, role: 3 },
+  ];
+  const snap = net.snapshot(8, 0, roster, 'mesh');
+  snap.streak = 3;
+  assert.ok(snap.links.some((l) => l.unit === 'def'));
+  assert.ok(snap.links.some((l) => l.unit === 'mid'));
+  drawPassingNetwork(proxy, toScreen, snap, 1, 0);
+  assert.ok(strokes.some((s) => s.includes('56,214,196')), `def teal drawn, got ${strokes}`);
+  assert.ok(strokes.some((s) => s.includes('167,139,250')), `mid violet drawn, got ${strokes}`);
+  assert.equal(NETWORK_UNIT_CSS.def, '#38d6c4');
+  assert.equal(NETWORK_UNIT_CSS.mid, '#a78bfa');
+  assert.equal(NETWORK_UNIT_CSS.fwd, '#fb7185');
+});
+
+test('unit link strength steps up with pass count', () => {
+  const widths = [];
+  const mk = () => {
+    const { ctx } = makeCtx();
+    return new Proxy(ctx, {
+      get(target, prop) {
+        if (prop === 'lineWidth') return target[prop];
+        if (typeof prop === 'string') return (...args) => target[prop](...args);
+        return target[prop];
+      },
+      set(target, prop, value) {
+        if (prop === 'lineWidth') widths.push(value);
+        target[prop] = value;
+        return true;
+      },
+    });
+  };
+  const roster = [
+    { team: 0, shirt: 4, x: -30, y: -12, role: 2 },
+    { team: 0, shirt: 5, x: -28, y: 12, role: 2 },
+  ];
+  const weak = createPassingNetwork();
+  weak.observePass({ x: 0, y: 0, team: 0, shirt: 4, role: 2 }, { x: 10, y: 0, team: 0, shirt: 5, role: 2 });
+  const weakSnap = weak.snapshot(8, 0, roster, 'mesh');
+  weakSnap.streak = 3;
+  widths.length = 0;
+  drawPassingNetwork(mk(), toScreen, weakSnap, 1, 0);
+  const weakWidth = Math.max(...widths);
+  const strong = createPassingNetwork();
+  for (let i = 0; i < 25; i++) {
+    strong.observePass({ x: 0, y: 0, team: 0, shirt: 4, role: 2 }, { x: 10, y: 0, team: 0, shirt: 5, role: 2 });
+  }
+  const strongSnap = strong.snapshot(8, 0, roster, 'mesh');
+  strongSnap.streak = 3;
+  widths.length = 0;
+  drawPassingNetwork(mk(), toScreen, strongSnap, 1, 0);
+  const strongWidth = Math.max(...widths);
+  assert.ok(strongWidth > weakWidth, `${strongWidth} > ${weakWidth}`);
+});
+
+test('network fade grows new wires and shrinks removed ones', () => {
+  const fade = createNetworkFade();
+  const def = [{ a: '0:4', b: '0:5', n: 5, unit: 'def' }];
+  let shown = fade.update(def, 0.2, false, 0);
+  assert.ok(shown[0].alpha > 0 && shown[0].alpha < 0.32);
+  shown = fade.update(def, 1.0, false, 0);
+  assert.ok(Math.abs(shown[0].alpha - 0.32) < 0.02);
+  // Formation shift removes the wire: it fades out instead of vanishing.
+  shown = fade.update([], 0.2, false, 0);
+  assert.equal(shown.length, 1);
+  assert.ok(shown[0].alpha < 0.32);
+  fade.reset();
+  assert.equal(fade.update([], 0.2, false, 0).length, 0);
+});
+
+test('mesh baseline web draws before any pass; outlet still waits for a sequence', () => {
+  const { ctx, calls } = makeCtx();
+  const net = createPassingNetwork();
+  const roster = [
+    { team: 0, shirt: 4, x: 0, y: 0, role: 2 },
+    { team: 0, shirt: 5, x: 2, y: 8, role: 2 },
+  ];
+  // No passes yet: the same-band pair already shows as a light thread.
+  const mesh = net.snapshot(8, 0, roster, 'mesh');
+  assert.equal(mesh.streak, 0);
+  assert.equal(mesh.links.length, 1);
+  assert.equal(mesh.links[0].n, 0);
+  const strokesBefore = calls.filter(([n]) => n === 'stroke').length;
+  drawPassingNetwork(ctx, toScreen, mesh, 1, 0);
+  assert.ok(calls.filter(([n]) => n === 'stroke').length > strokesBefore,
+    'baseline thread is drawn at streak 0');
+  // Outlet mode describes the live window, so it stays hidden until a run.
+  const outlet = net.snapshot(8, 0, roster, 'outlet');
+  assert.equal(outlet.links.length, 0);
+  const { ctx: ctx2, calls: calls2 } = makeCtx();
+  drawPassingNetwork(ctx2, toScreen, outlet, 1, 0);
+  assert.equal(calls2.filter(([n]) => n === 'stroke').length, 0);
+});
+
+test('same-position thread strengthens as the pair keeps combining', () => {
+  // Link strokes are straight moveTo/lineTo paths; node rings and pulse beads
+  // use arcs, so only lineTo paths count as threads.
+  const linkStrokes = [];
+  const mk = () => {
+    const { ctx: inner } = makeCtx();
+    let alpha = 1;
+    let width = 1;
+    let hasLine = false;
+    return new Proxy(inner, {
+      get(target, prop) {
+        if (typeof prop === 'string') {
+          return (...args) => {
+            if (prop === 'lineTo') hasLine = true;
+            if (prop === 'stroke') {
+              if (hasLine) linkStrokes.push({ alpha, width });
+              alpha = 1;
+              width = 1;
+              hasLine = false;
+            }
+            return target[prop](...args);
+          };
+        }
+        return target[prop];
+      },
+      set(target, prop, value) {
+        if (prop === 'globalAlpha') alpha = value;
+        if (prop === 'lineWidth') width = value;
+        target[prop] = value;
+        return true;
+      },
+    });
+  };
+  const roster = [
+    { team: 0, shirt: 4, x: -30, y: -6, role: 2 },
+    { team: 0, shirt: 5, x: -28, y: 8, role: 2 },
+  ];
+  const baseline = createPassingNetwork();
+  linkStrokes.length = 0;
+  drawPassingNetwork(mk(), toScreen, baseline.snapshot(8, 0, roster, 'mesh'), 1, 0);
+  assert.ok(linkStrokes.length > 0, 'baseline thread is drawn before any pass');
+  const basePeak = Math.max(...linkStrokes.map((s) => s.alpha));
+  const baseWidth = Math.max(...linkStrokes.map((s) => s.width));
+  const busy = createPassingNetwork();
+  for (let i = 0; i < 25; i++) {
+    busy.observePass({ x: -30, y: -6, team: 0, shirt: 4, role: 2 }, { x: -28, y: 8, team: 0, shirt: 5, role: 2 });
+  }
+  linkStrokes.length = 0;
+  drawPassingNetwork(mk(), toScreen, busy.snapshot(8, 0, roster, 'mesh'), 1, 0);
+  const busyPeak = Math.max(...linkStrokes.map((s) => s.alpha));
+  const busyWidth = Math.max(...linkStrokes.map((s) => s.width));
+  assert.ok(basePeak > 0.01, `baseline thread is visible, got alpha ${basePeak}`);
+  assert.ok(busyPeak > basePeak * 2, `25 passes strengthen ${basePeak} → ${busyPeak}`);
+  assert.ok(busyWidth > baseWidth, `25 passes thicken ${baseWidth} → ${busyWidth}`);
+});
+
+test('heavy cross-band pairs earn a wire and carry the pulse', () => {
+  const { ctx, calls } = makeCtx();
+  const net = createPassingNetwork();
+  const p = (x, y, shirt, role) => ({ x, y, team: 0, shirt, role });
+  for (let i = 0; i < 6; i++) net.observePass(p(-30, 0, 4, 2), p(-5, 0, 8, 3));
+  const roster = [
+    { team: 0, shirt: 4, x: -30, y: -6, role: 2 },
+    { team: 0, shirt: 8, x: -5, y: 6, role: 3 },
+  ];
+  const snap = net.snapshot(8, 0, roster, 'mesh');
+  assert.equal(snap.links.length, 1);
+  assert.equal(snap.links[0].unit, 'mid');
+  drawPassingNetwork(ctx, toScreen, snap, 1, 0, null, { a: '0:4', b: '0:8', progress: 0.5 });
+  // The earned wire is drawn and the bead travels it.
+  assert.ok(calls.some(([n]) => n === 'lineTo'));
   assert.ok(calls.some(([n, , , r]) => n === 'arc' && Math.abs(r - 3) < 1e-9));
 });
 

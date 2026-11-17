@@ -19,7 +19,9 @@ web/
 ├── overlays.test.mjs  # headless Canvas-harness tests for the draw routines
 ├── graphs.js          # momentum strip + passing network accumulators
 ├── graphs.test.mjs
-├── effects.js         # analytical layer toggles + shuffle state
+├── ballMotion.js      # ball trail + carrier emphasis + possession ring
+├── ballMotion.test.mjs
+├── effects.js         # layer toggles + shuffle state
 ├── effects.test.mjs
 ├── presets.js         # Broadcast / Tactical / Clean layer presets + storage
 ├── presets.test.mjs
@@ -35,6 +37,18 @@ web/
 ├── playerPanel.test.mjs
 ├── transitions.js     # renderer-only substitution choreography
 ├── transitions.test.mjs
+├── replay3d/          # 3D highlight replay experiment (see below)
+│   ├── PLAN.md        # phase log, decisions and review notes
+│   ├── clipStore.js   # 10 Hz ring buffer + windowing + sampler
+│   ├── replay3d.js    # sidebar CTA + theatre controller
+│   ├── stage.js       # lazy three.js renderer
+│   ├── stadium.js     # pitch, goals, stands, crowd
+│   ├── players.js     # Mixamo mocap playback + kit recolour
+│   ├── mocapPose.js   # seek-safe quaternion sampling + procedural bridge
+│   ├── playerActions.js # event → action state machine
+│   ├── mixamoClips.js # generated 30 Hz mocap buffers (do not edit)
+│   └── director.js    # broadcast camera shots
+├── vendor/three/      # vendored three.js r186 (module + core + license)
 ├── smoke.test.mjs     # boots app.js under a stub DOM (link/id/render checks)
 ├── smoke_test.cjs     # end-to-end test of the compiled .wasm (Node)
 └── README.md
@@ -122,6 +136,83 @@ engine.get_possession_team();      // 0 home, 1 away, -1 neutral
 engine.seek_to(300);               // jump to 05:00 (rebuilds + fast-forwards)
 ```
 
+## 3D highlight replay (experiment)
+
+The **3D Replay** card sits in the sidebar's Highlights stack (above the 2D
+highlight canvas), so it never covers the pitch. When a notable event fires,
+the card shows `REC` while a short window is captured, then flips to `READY`;
+clicking it opens a full-screen theatre. The live 2D GEV keeps running behind
+the overlay, and `Escape` returns to it.
+
+- **Window** — 15 s before and 15 s after the event (30 s sequence by default),
+  captured from the same 10 Hz snapshot the 2D pitch draws. Nothing is
+  re-simulated and the engine is never seeked for a replay. A corner followed by
+  a goal inside the window becomes one clip with the goal as its headline.
+- **Playback** — opens at the start of the window at **0.5×** (0.25× / 1×
+  selectable). Scrubber, play/pause, `Space`, `←`/`→` (±2 s), `Escape` to close.
+- **Camera** — Auto glides through high broadcast positions: a top-of-stadium
+  wide, a high broadcast follow, an elevated close-up and a behind-goal net cam
+  for shots/goals, then back to broadcast. Shot changes blend over ~1 s with a
+  fly-over lift instead of hard cuts; scrubbing snaps. Manual `Broadcast`,
+  `Wide`, `Follow`, `Close`, `Goal` and `Tactical` chips override the director.
+  A beaten net ripples the goal cam, scaled by the stadium energy.
+- **Players** — 19-bone humanoids with team shirt/shorts/socks, GK variants,
+  back numbers redrawn on substitutions and a soft blob shadow per player.
+  Motion is retargeted Mixamo soccer mocap from the extended 67-file pack (51
+  baked clips): idle variants, directional locomotion (backpedal, side-shuffle,
+  diagonal runs, striker runs), side-foot/driven/chipped passes, strikes,
+  jumping headers, slide tackles, trips, downed holds, get-ups, dribble
+  touches, skill stalls, throw-ins, receives, volleys, keeper dives/catches/
+  blocks/scoops/misses/distribution/placing. Same-name clips shuffle
+  deterministically per player (the base clip owns hash < 0.62, so legacy
+  behaviour is preserved); a group never serves another semantic (a header
+  variant never plays a pass). Locomotion follows the measured speed and
+  direction; one-shots are blended from the event and sampled from absolute
+  clip time, so 0.5× playback and scrubbing stay correct. The raw FBX files
+  are a local build input and are not committed; the baker lives in
+  `match_engine/tools/bake-mixamo` (`--append` freezes the base clips).
+- **Stadium** — procedural night bowl: worn mown pitch with metric markings,
+  corner flags, goals and nets, LED boards, three tiers, roofs with light
+  strips, floodlights with glow sprites, stars, jumbotron with fixture/score/
+  match clock, dugouts, tunnel and pitch-side cameras. The crowd is four
+  instanced layers sharing one placement set: bodies (bob/sway/wave), heads
+  (independent nod), arms (energy-gated waves) and handheld banners (raised,
+  waved, then lowered periodically) — plus tifo, flags and confetti, all
+  driven by one energy scalar.
+- **Analysis in 3D** — the theatre projects the same analytical stack onto
+  the pitch: heatmap (match-so-far snapshot), passing network (unit outlet /
+  unit webs from the analysis log), offside line (informative-only rule), carrier &
+  shape, pass lanes, run channels, role-shaped vision cone/field and dribble
+  zones, drawn by the same 2D routines onto a ground canvas with the same
+  variants. Side panel: layer toggles with shift-click solo, shuffle, the
+  Broadcast/Tactical/Clean/All presets, a layer-style lab, readout, live
+  minimap, momentum strip, event feed and the full team/player analysis
+  panel (follows the replay clock; seeking stays inside the clip window).
+- **Post FX** — High (bloom + broadcast grade/vignette/grain), Medium
+  (grade only) and Low (direct render) tiers with a vendored composer; any
+  failure falls back to direct rendering. Reduced-motion freezes the grain
+  and the camera transitions.
+
+Three.js r186 is vendored under `web/vendor/three/` (`three.module.min.js`
+imports `three.core.js`, plus the post-processing addons), so the page works
+offline with the same `python -m http.server`; the stage is imported lazily
+only when the theatre is opened. Pausing the match freezes the sim clock, so
+a 2.5 s watchdog flushes a partial clip instead of leaving the card on `REC`
+forever. Seeks and match loads reset the recorder and close a stale theatre.
+
+Files: `replay3d/clipStore.js` (ring buffer + sampler, DOM-free),
+`replay3d/replay3d.js` (card/theatre controller), `replay3d/stage.js`
+(renderer + post pipeline), `replay3d/stadium.js`, `replay3d/players.js`,
+`replay3d/mocapPose.js` (seek-safe quaternion sampler),
+`replay3d/playerActions.js` (event → action state machine with variants),
+`replay3d/analysis3d.js` (ground-projected analysis layers),
+`replay3d/playerClips.js` (procedural fallback/celebrations),
+`replay3d/mixamoClips.js` + `mixamoTiming.js` (generated mocap data,
+timings and variant groups), `replay3d/director.js`. Tests:
+`node --test web/replay3d/*.test.mjs`. `window.__gev.replayRecorder` and
+`window.__gev.replay3d` expose read-only debug handles (including the last
+analysis layer error).
+
 ## Team analysis overlays
 
 The overlays **follow possession**: exactly one team is shown at a time (the
@@ -135,16 +226,23 @@ independently from the effects bar above the pitch.
   triangle joining the three unit centroids. DEF / MID / ATT are colour-coded
   and labelled at the end of each segment. A unit with one player shows a dot
   instead of a line; the triangle only appears when all three units exist.
-- **Passing network** — the default mode draws exactly one wire per player:
-  his most-used teammate in the current run of possession. Width scales with
-  the count, a bead pulses along the wire when the pass is made, node size
-  tracks involvement in that possession, and the whole shape clears on a
-  turnover. The **Full mesh** variant in the Variant lab restores the match-long
-  complete web: every shirt is a node and every pair is a link, zero-pass
-  pairs are a faint thread, and the strongest channel is drawn on top.
-  Mesh link weight decays with a three-minute time constant: a pair that stops
-  combining thins back toward the default faint thread, while a fresh pass
-  refreshes the timestamp and thickens it again.
+- **Passing network** — three dynamic bands in the possession
+  team's colours: defenders in teal, midfielders in violet, attackers in
+  rose (the keeper is excluded). A band follows live shape, not just the
+  teamsheet: a midfielder who pushes beyond the forward line joins the
+  attack band and chains with the strikers, and dropping deep returns him
+  to the midfield — and eventually the defence — band, with hysteresis so
+  shirts never flap between bands. Each band is chained end to end across
+  the pitch width for the smallest total length, so lines never wrap around
+  bodies. Pairs with real pass history always draw their own wire and step
+  up a per-unit pass ladder (DEF 1/4/10/22, MID 1/3/8/18, ATT 1/2/5/12)
+  as they keep combining. The **Unit outlet** variant in the lab keeps one
+  wire per player to his most-used same-band teammate in the current
+  possession; the window clears on a turnover. Link weight decays with a
+  three-minute time constant: a pair that stops combining thins back toward
+  the baseline, while a fresh pass refreshes the timestamp and thickens it
+  again. Formation changes regroup the bands live: new band links fade in,
+  removed ones fade out, and surviving wires ease toward their new tier.
 - **Live heatmap** — a cumulative density map of the followed team's
   positions from load/seek onward, sampled every 0.25 s of match time. Home
   uses a warm ramp, away a cool ramp; the soft wash is confined to the pitch
@@ -192,13 +290,14 @@ independently from the effects bar above the pitch.
 The passing network is anchored to the live player positions and shows while
 the followed team still has the ball, after at least three consecutive passes.
 A sustained interception clears the retained sequence immediately (the layer
-hides as soon as possession is lost). In the default outlet mode the network
-describes only the current possession: each player has one wire to his
-most-used teammate, and the window empties on a turnover. **Full mesh** keeps
-the match-long cumulative web instead: every shirt is a node and every pair is
-a link — zero-pass pairs are a faint thread, and a pair darkens only as those
-two players keep exchanging the ball (absolute pass count, not relative to the
-strongest link).
+hides as soon as possession is lost). The default **Unit webs** mode keeps
+three match-long cumulative webs — DEF, MID and FWD — instead of one team
+web: every intra-unit pair is a link, zero-pass pairs are a faint thread,
+and a pair steps up its unit's pass ladder only as those two players keep
+exchanging the ball (absolute pass count, not relative to the strongest
+link). **Unit outlet** describes only the current possession instead: each
+player keeps one wire to his most-used same-unit teammate, and the window
+empties on a turnover.
 
 The offside line is a reference, not a fixture: it is shown only while it says
 something. It hides when the back line is camped within 15 m of the goal it
@@ -215,6 +314,30 @@ ring, threat label, press ring and defensive hull), **Pass lanes**, **Run
 channels**, **Vision cone** and **Dribbles**. The app starts on the
 **Tactical** preset (all spatial layers except dribble zones); **All** turns
 every layer on.
+
+Two **Motion** toggles sit at the end of the same bar and are independent of
+the analysis stack:
+
+- **Ball trail** — a short white streak behind a moving ball (roughly 0.4 s of
+  travel). It is tapered from a transparent tail to a soft white head, drawn as
+  midpoint quadratics through the real trajectory, and suppressed below
+  walking pace and while paused. A teleport (kickoff re-spot, seek) starts a
+  fresh history instead of drawing a phantom line across the pitch.
+- **Carrier grow** — the marker of the player at the ball eases from 5 px to
+  9 px radius and the previous carrier eases back. The change follows the ball
+  itself, so it works for either team and hands over on a turnover. A white/pink
+  possession ring spins around the grown marker; it rides the same eased radius
+  (so it widens with the body), fades out with the old carrier and fades in with
+  the new one. The **Comet gradient** skin (default) blends the two colours
+  around one continuous band; **Counter-spin duo** in the Variant lab runs a
+  white arc and a pink arc in opposite directions. Under
+  `prefers-reduced-motion` the trail is omitted, the radius change snaps and the
+  ring holds a fixed angle.
+
+Both motion toggles stay on screen during **Shuffle effects** (which rotates
+only the analytical layers) and ride along with the Broadcast, Tactical and All
+presets; Clean turns them off with everything else.
+
 **Shift-click** any layer to solo it; shift-click again restores every layer. Preset and variant choices are both stored in `localStorage`.
 The **Lane memory** slider under the pitch controls how long pass lanes linger
 after possession changes. **Network memory** controls the passing-network
@@ -222,16 +345,18 @@ decay constant; shorter values thin old links faster.
 
 The **Presets** control switches coherent layer sets: **Broadcast** (heatmap,
 carrier shape, offside), **Tactical** (the full spatial stack), **Clean** (no
-overlays) and **All**. The passing network's outlet/mesh choice now lives in
+overlays) and **All**. The passing network's unit-outlet/unit-webs choice now lives in
 the Variant lab rather than a separate button. Hiding a layer only skips its draw call: the samplers and trackers
 keep running, so switching it back on resumes the live state instead of
 resetting it. Toggle choices persist across seeks, restarts and match loads.
 
-**🔀 Shuffle effects** shows exactly one enabled layer at a time and advances
+**🔀 Shuffle effects** shows exactly one enabled analytical layer at a time and advances
 every 4 seconds, wrapping through the enabled set. The current layer's button
 is highlighted. Turning Shuffle off restores the normal view for every enabled
 toggle. Disabling the layer currently on screen moves Shuffle to the next
-enabled layer; if no layers are enabled, Shuffle shows nothing.
+enabled layer; if no layers are enabled, Shuffle shows nothing. The two
+**Motion** layers are deliberately outside the rotation and stay visible for
+every shuffle frame.
 
 ### Variant lab
 
@@ -242,8 +367,10 @@ versions; Corridor draws the receiving shirt and completion probability at the
 lane end. Run channels has arrows, arrow-free lanes, landing blobs, player
 trails and a thin trace. Heatmap has raster and hex-bin outputs; field has
 classic, broadcast and night palettes; analysis has a minimal carrier-and-hull
-mode. The recommended defaults are soft-wedge, corridor and lanes. Selections
-are stored in `localStorage`, and **Reset to recommended** restores them.
+mode; the possession ring can be the blended **Comet gradient** (default) or the
+counter-spinning **Duo** arcs. The recommended defaults are soft-wedge, corridor,
+lanes and comet. Selections are stored in `localStorage`, and **Reset to
+recommended** restores them.
 
 Set-piece robustness: a corner holds the ball at the flag while the box fills.
 If the feed includes a delivery pass, that cross is used; if the synthetic feed
@@ -253,10 +380,10 @@ Duplicate "player on" rows in synthetic feeds are ignored so two bodies can
 never share one identity (which used to tear the goalkeeper's anchor apart).
 
 The pure geometry and accumulators (`analysis.js`, `heatmap.js`, `graphs.js`)
-are DOM-free and covered by Node tests:
+plus the 3D clip store are DOM-free and covered by Node tests:
 
 ```bash
-node --test web/*.test.mjs
+node --test web/*.test.mjs web/replay3d/*.test.mjs
 ```
 
 ## Dribble analysis
@@ -421,7 +548,7 @@ heap can grow during `tick()` and detach older views.
 ## Test the wasm and overlays without a browser
 
 ```bash
-node --test web/*.test.mjs
+node --test web/*.test.mjs web/replay3d/*.test.mjs
 
 wasm-bindgen --target nodejs --out-dir pkg-node \
   target/wasm32-unknown-unknown/release/match_engine.wasm

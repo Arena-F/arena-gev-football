@@ -1,9 +1,10 @@
-// Analytical effect toggles and the one-at-a-time shuffle state.
+// Layer toggles and the one-at-a-time shuffle state.
 //
 // The controller only answers "should this layer be drawn?"; it never touches
 // the drawing routines themselves. Sampling and trackers keep running while a
 // layer is hidden, so turning it back on resumes the live view instead of
-// resetting it.
+// resetting it. Analytical layers take part in the shuffle rotation;
+// presentation polish (`shuffle: false`) does not.
 
 export const EFFECTS = Object.freeze([
   Object.freeze({ key: 'heatmap', label: 'Heatmap' }),
@@ -14,9 +15,19 @@ export const EFFECTS = Object.freeze([
   Object.freeze({ key: 'attackChannels', label: 'Run channels' }),
   Object.freeze({ key: 'visionCone', label: 'Vision cone' }),
   Object.freeze({ key: 'dribbles', label: 'Dribble zones' }),
+  // Presentation layers polish the ball and the body in possession. They are
+  // toggles like every other effect, but `shuffle: false` keeps them out of
+  // the one-at-a-time rotation: a rotation frame with no analysis layer at
+  // all would read as a broken pitch rather than a comparison.
+  Object.freeze({ key: 'ballTrail', label: 'Ball trail', shuffle: false }),
+  Object.freeze({ key: 'carrierGrow', label: 'Carrier grow', shuffle: false }),
 ]);
 
 export const SHUFFLE_SECONDS = 4;
+
+function isShuffleable(effect) {
+  return effect.shuffle !== false;
+}
 
 export function createEffectController(options = {}) {
   const effects = options.effects ?? EFFECTS;
@@ -29,7 +40,9 @@ export function createEffectController(options = {}) {
   let elapsed = 0;
 
   function enabledKeys() {
-    return effects.filter((effect) => enabled.get(effect.key)).map((effect) => effect.key);
+    return effects
+      .filter((effect) => isShuffleable(effect) && enabled.get(effect.key))
+      .map((effect) => effect.key);
   }
 
   function selectFirst(pool) {
@@ -117,7 +130,13 @@ export function createEffectController(options = {}) {
       return enabled.get(key) === true;
     },
     isVisible(key) {
-      return shuffleActive ? key === currentKey : enabled.get(key) === true;
+      if (enabled.get(key) !== true) return false;
+      if (!shuffleActive) return true;
+      // Presentation polish is not part of the comparison rotation, so it
+      // stays on screen whenever its own toggle is on.
+      const effect = effects.find((entry) => entry.key === key);
+      if (effect && !isShuffleable(effect)) return true;
+      return key === currentKey;
     },
     setEnabled,
     toggleEnabled,

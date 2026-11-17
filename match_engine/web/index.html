@@ -3,7 +3,8 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>God's Eye View — Opta F24 Simulation</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%E2%9A%BD%3C/text%3E%3C/svg%3E" />
+  <title>God's Eye View - Opta F24 Simulation</title>
   <style>
     :root { color-scheme: dark; }
     * { box-sizing: border-box; }
@@ -480,6 +481,286 @@
       #player-panel { transition: none; }
       #feed .row { animation: none; }
     }
+
+    /* ── 3D highlights replay ──────────────────────────────────
+       The CTA sits in the sidebar's Highlights stack, so it can never cover
+       the 2D GEV canvas. The theatre is an opt-in overlay. */
+    #replay3d-card {
+      position: relative; margin: 0 0 8px;
+      background: linear-gradient(115deg, rgba(47, 129, 247, 0.18), rgba(13, 17, 23, 0.92) 70%);
+      border: 1px solid #30363d; border-left: 3px solid var(--r3d-team, #ffbe5a);
+      border-radius: 8px; overflow: hidden;
+    }
+    #replay3d-card[hidden] { display: none; }
+    #replay3d-card[data-state="ready"] { border-color: rgba(63, 208, 124, 0.42); border-left-color: var(--r3d-team, #ffbe5a); }
+    .r3d-card-main {
+      display: grid; grid-template-columns: 1fr auto; grid-template-rows: auto auto auto;
+      gap: 2px 8px; width: 100%; padding: 9px 10px 11px;
+      background: transparent; border: 0; border-radius: 0; color: #e6edf3;
+      text-align: left; cursor: pointer; font-family: inherit;
+    }
+    .r3d-card-main:hover { background: rgba(255, 255, 255, 0.035); }
+    .r3d-card-main:disabled { cursor: progress; opacity: 0.82; }
+    .r3d-status {
+      grid-column: 1; grid-row: 1; justify-self: start;
+      font-size: 9.5px; letter-spacing: 1.1px; font-weight: 650;
+      padding: 2px 7px; border-radius: 999px; font-variant-numeric: tabular-nums;
+      color: #3fd07c; border: 1px solid rgba(63, 208, 124, 0.42);
+      background: rgba(63, 208, 124, 0.1);
+    }
+    #replay3d-card[data-state="rec"] .r3d-status {
+      color: #ffbe5a; border-color: rgba(255, 190, 90, 0.42);
+      background: rgba(255, 190, 90, 0.1);
+    }
+    .r3d-card-event {
+      grid-column: 1; grid-row: 2; font-size: 13.5px; font-weight: 700;
+      letter-spacing: 0.2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .r3d-card-meta {
+      grid-column: 1 / -1; grid-row: 3; min-width: 0; font-size: 10.5px;
+      color: #8b949e; font-variant-numeric: tabular-nums;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .r3d-card-play {
+      grid-column: 2; grid-row: 1 / span 2; align-self: center;
+      display: grid; place-items: center; width: 30px; height: 30px;
+      border-radius: 50%; background: #2f81f7; color: #fff; font-size: 10px;
+      box-shadow: 0 4px 14px rgba(47, 129, 247, 0.4);
+    }
+    .r3d-card-main:disabled .r3d-card-play {
+      background: #21262d; color: #6e7681; box-shadow: none;
+    }
+    .r3d-card-main:hover .r3d-card-event { color: #fff; }
+    .r3d-card-bar { position: absolute; left: 0; bottom: 0; width: 100%; height: 2px; background: #21262d; }
+    .r3d-card-bar i {
+      display: block; height: 100%; width: 0;
+      background: var(--r3d-team, #ffbe5a);
+      transition: width 180ms linear;
+    }
+
+    #replay3d-theater {
+      position: fixed; inset: 0; z-index: 70;
+      display: flex; align-items: center; justify-content: center;
+      padding: 18px; background: rgba(4, 7, 10, 0.96);
+    }
+    #replay3d-theater[hidden] { display: none; }
+    body.r3d-open { overflow: hidden; }
+    .r3d-shell {
+      width: min(1440px, 100%); max-height: 100%;
+      display: flex; flex-direction: column; gap: 10px;
+    }
+    .r3d-head { display: flex; align-items: center; gap: 16px; color: #8b949e; font-size: 12px; }
+    .r3d-brand { display: flex; align-items: baseline; gap: 8px; }
+    .r3d-brand-mark {
+      font-size: 15px; font-weight: 800; letter-spacing: 2.4px; color: #e6edf3;
+    }
+    .r3d-brand-mark::after {
+      content: ""; display: inline-block; width: 6px; height: 6px;
+      margin-left: 7px; border-radius: 50%; background: #3fd07c;
+      box-shadow: 0 0 10px rgba(63, 208, 124, 0.8); vertical-align: middle;
+    }
+    .r3d-brand-sub {
+      font-size: 10px; letter-spacing: 1.6px; text-transform: uppercase; color: #6e7681;
+    }
+    .r3d-fixture { display: flex; align-items: baseline; gap: 10px; margin-left: auto; }
+    .r3d-fixture strong { color: #c9d1d9; font-weight: 600; }
+    .r3d-fixture span {
+      color: #e6edf3; font-weight: 700; font-variant-numeric: tabular-nums;
+      background: #161b22; border: 1px solid #30363d; border-radius: 6px; padding: 2px 9px;
+    }
+    .r3d-close {
+      border: 1px solid #30363d; background: #161b22; color: #c9d1d9;
+      border-radius: 8px; padding: 7px 12px; font-size: 12px; cursor: pointer;
+    }
+    .r3d-close:hover { border-color: #2f81f7; color: #fff; }
+
+    .r3d-main {
+      display: flex; gap: 12px; align-items: stretch;
+      width: 100%; min-height: 0;
+    }
+    .r3d-stage {
+      position: relative; margin: 0 auto;
+      flex: 1 1 auto; min-width: 0;
+      width: min(100%, calc((100vh - 208px) * 16 / 9));
+      aspect-ratio: 16 / 9;
+      background: #050a08; border: 1px solid #26323b; border-radius: 14px;
+      overflow: hidden; box-shadow: 0 30px 80px rgba(0, 0, 0, 0.62);
+    }
+    .r3d-side {
+      flex: 0 0 296px; width: 296px; max-height: calc(100vh - 240px);
+      overflow-y: auto; display: flex; flex-direction: column; gap: 8px;
+      background: #0d1117; border: 1px solid #21262d; border-radius: 12px;
+      padding: 10px;
+    }
+    .r3d-side::-webkit-scrollbar { width: 8px; }
+    .r3d-side::-webkit-scrollbar-thumb { background: #30363d; border-radius: 4px; }
+    .r3d-fxbar {
+      display: flex; flex-wrap: wrap; gap: 4px;
+    }
+    .r3d-fxbar button, .r3d-presets button {
+      border: 1px solid #30363d; background: #161b22; color: #8b949e;
+      font-size: 11px; padding: 4px 8px; border-radius: 6px; cursor: pointer;
+    }
+    .r3d-fxbar button:hover, .r3d-presets button:hover { color: #e6edf3; }
+    .r3d-fxbar button[aria-pressed="true"], .r3d-presets button[aria-pressed="true"] {
+      background: #2f81f7; border-color: #2f81f7; color: #fff; font-weight: 650;
+    }
+    .r3d-presets { display: flex; flex-wrap: wrap; gap: 4px; }
+    .r3d-lab-details { font-size: 11px; color: #8b949e; }
+    .r3d-lab-details summary { cursor: pointer; padding: 2px 0; }
+    .r3d-lab { display: flex; flex-direction: column; gap: 6px; padding-top: 4px; }
+    .r3d-lab label { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+    .r3d-lab select {
+      background: #0d1117; color: #e6edf3; border: 1px solid #30363d;
+      border-radius: 6px; padding: 3px 6px; font-size: 11px; max-width: 170px;
+    }
+    .r3d-readout { font-size: 11px; color: #8b949e; line-height: 1.5; min-height: 16px; }
+    .r3d-readout strong { color: #e6edf3; }
+    #r3d-minimap, #r3d-momentum {
+      width: 100%; height: auto; border-radius: 8px;
+      border: 1px solid #21262d; background: #0d1117;
+    }
+    .r3d-feed {
+      display: flex; flex-direction: column; gap: 2px;
+      font-size: 11px; max-height: 150px; overflow-y: auto;
+    }
+    .r3d-feed .row {
+      display: flex; gap: 8px; padding: 2px 6px; border-radius: 4px;
+      color: #8b949e; font-variant-numeric: tabular-nums;
+    }
+    .r3d-feed .row.is-now { background: rgba(47, 129, 247, 0.18); color: #e6edf3; }
+    .r3d-feed .row .t { color: #6e7681; }
+    .r3d-panel-open {
+      border: 1px solid #2f81f7; background: rgba(47, 129, 247, 0.16); color: #e6edf3;
+      border-radius: 8px; padding: 7px 10px; font-size: 12px; cursor: pointer;
+    }
+    .r3d-panel-open:hover { background: rgba(47, 129, 247, 0.3); }
+    #r3d-player-panel {
+      position: absolute; top: 0; right: 0; z-index: 80;
+      width: 374px; max-width: 92%; height: 100%;
+      display: flex; flex-direction: column;
+      background: #0d1117; border-left: 1px solid #30363d;
+      box-shadow: -24px 0 48px rgba(0, 0, 0, 0.5);
+      visibility: hidden; transform: translateX(102%);
+      transition: transform 240ms cubic-bezier(0.2, 0.8, 0.2, 1), visibility 0s linear 240ms;
+    }
+    #r3d-player-panel.is-open {
+      visibility: visible; transform: none;
+      transition: transform 240ms cubic-bezier(0.2, 0.8, 0.2, 1), visibility 0s;
+    }
+    #replay3d-theater .r3d-shell { position: relative; }
+    #r3d-canvas { display: block; width: 100%; height: 100%; }
+
+    .r3d-hud {
+      position: absolute; inset: 12px 14px auto 14px;
+      display: flex; align-items: flex-start; justify-content: space-between;
+      pointer-events: none; gap: 12px;
+    }
+    .r3d-hud-event {
+      display: flex; align-items: center; gap: 9px; padding: 6px 11px;
+      background: rgba(8, 12, 16, 0.74); border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 8px; backdrop-filter: blur(6px);
+    }
+    .r3d-hud-label {
+      font-size: 11px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase;
+      color: #e6edf3;
+    }
+    .r3d-hud-clock {
+      font-size: 13px; font-weight: 700; color: #ffbe5a;
+      font-variant-numeric: tabular-nums; letter-spacing: 0.6px;
+    }
+    .r3d-hud-team { font-size: 11px; color: #8b949e; }
+    .r3d-hud-tag {
+      font-size: 10px; letter-spacing: 1.2px; text-transform: uppercase;
+      color: #8b949e; padding: 6px 10px; border-radius: 8px;
+      background: rgba(8, 12, 16, 0.74); border: 1px solid rgba(255, 255, 255, 0.1);
+      font-variant-numeric: tabular-nums;
+    }
+    .r3d-hud-tag span { color: #3fd07c; font-weight: 700; }
+
+    .r3d-title-card {
+      position: absolute; left: 16px; bottom: 16px; max-width: min(440px, 70%);
+      display: flex; flex-direction: column; gap: 2px; padding: 10px 14px 11px;
+      background: linear-gradient(90deg, rgba(8, 12, 16, 0.92), rgba(8, 12, 16, 0.6));
+      border-left: 3px solid var(--r3d-team, #ffbe5a); border-radius: 0 8px 8px 0;
+      pointer-events: none;
+      opacity: 0; transform: translateY(8px);
+      transition: opacity 320ms ease, transform 320ms ease;
+    }
+    .r3d-title-card.is-visible { opacity: 1; transform: none; }
+    .r3d-tc-kicker {
+      font-size: 9px; letter-spacing: 1.7px; text-transform: uppercase; color: #8b949e;
+    }
+    .r3d-tc-main { font-size: 15px; font-weight: 750; color: #e6edf3; letter-spacing: 0.2px; }
+    .r3d-tc-sub {
+      font-size: 10.5px; color: #8b949e; font-variant-numeric: tabular-nums;
+    }
+
+    .r3d-loading, .r3d-error {
+      position: absolute; inset: 0; display: flex; flex-direction: column;
+      align-items: center; justify-content: center; gap: 8px;
+      background: rgba(5, 10, 8, 0.86); color: #c9d1d9; text-align: center; padding: 20px;
+    }
+    .r3d-loading[hidden], .r3d-error[hidden] { display: none; }
+    .r3d-spinner {
+      width: 26px; height: 26px; border-radius: 50%;
+      border: 2px solid rgba(63, 208, 124, 0.2); border-top-color: #3fd07c;
+      animation: r3dSpin 900ms linear infinite;
+    }
+    @keyframes r3dSpin { to { transform: rotate(360deg); } }
+    .r3d-loading-title { font-size: 13px; font-weight: 650; letter-spacing: 0.3px; }
+    .r3d-loading-sub { font-size: 11px; color: #6e7681; font-variant-numeric: tabular-nums; }
+    .r3d-error-title { font-size: 14px; font-weight: 700; color: #ffbe5a; }
+    .r3d-error-sub { font-size: 11.5px; color: #8b949e; max-width: 460px; line-height: 1.55; }
+
+    .r3d-controls {
+      display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+      background: #0d1117; border: 1px solid #21262d; border-radius: 12px;
+      padding: 10px 12px;
+    }
+    .r3d-play {
+      width: 42px; height: 42px; flex: 0 0 auto; border-radius: 50%;
+      border: 1px solid #2f81f7; background: #2f81f7; color: #fff;
+      font-size: 13px; line-height: 1; cursor: pointer; display: grid; place-items: center;
+    }
+    .r3d-play:hover { filter: brightness(1.1); }
+    .r3d-play:disabled { background: #161b22; border-color: #30363d; color: #6e7681; cursor: default; }
+    .r3d-timeline { flex: 1 1 280px; min-width: 180px; display: flex; flex-direction: column; gap: 3px; }
+    .r3d-timeline input[type="range"] { width: 100%; margin: 0; }
+    .r3d-time {
+      display: flex; align-items: baseline; justify-content: space-between; gap: 10px;
+      font-size: 10.5px; color: #6e7681; font-variant-numeric: tabular-nums;
+      letter-spacing: 0.3px;
+    }
+    .r3d-time strong { color: #e6edf3; font-size: 12.5px; font-weight: 700; }
+    .r3d-group {
+      display: inline-flex; align-items: center; gap: 3px; padding: 3px;
+      background: #161b22; border: 1px solid #21262d; border-radius: 8px;
+    }
+    .r3d-group button {
+      border: 0; background: transparent; color: #8b949e; font-size: 11.5px;
+      padding: 5px 9px; border-radius: 6px; cursor: pointer; font-variant-numeric: tabular-nums;
+    }
+    .r3d-group button:hover { color: #e6edf3; }
+    .r3d-group button[aria-pressed="true"] { background: #2f81f7; color: #fff; font-weight: 650; }
+
+    @media (max-width: 760px) {
+      #replay3d-card { margin-bottom: 6px; }
+      #replay3d-theater { padding: 8px; }
+      .r3d-head { flex-wrap: wrap; gap: 8px 12px; }
+      .r3d-fixture { margin-left: 0; }
+      .r3d-main { flex-direction: column; }
+      .r3d-stage { width: 100%; }
+      .r3d-side { width: 100%; flex-basis: auto; max-height: none; }
+      .r3d-title-card { max-width: 88%; }
+      .r3d-controls { gap: 8px; }
+      .r3d-timeline { flex-basis: 100%; order: 3; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .r3d-title-card { transition: none; }
+      .r3d-spinner { animation: none; border-top-color: rgba(63, 208, 124, 0.2); }
+      .r3d-card-bar i { transition: none; }
+    }
   </style>
 </head>
 <body>
@@ -516,7 +797,7 @@
     <button id="loadpath">Load path</button>
     <button id="browse" title="Pick a folder and choose an .xml from it">📁 Browse folder</button>
   </div>
-  <div id="effects" role="group" aria-label="Analytical effects">
+  <div id="effects" role="group" aria-label="Pitch effects">
     <span class="effects-label" title="Shift-click a layer to solo it">Effects</span>
     <button type="button" class="effect-toggle" data-effect="heatmap" aria-pressed="true"
       title="Cumulative team heatmap">Heatmap</button>
@@ -534,6 +815,12 @@
       title="Visible and blind vision sectors">Vision cone</button>
     <button type="button" class="effect-toggle" data-effect="dribbles" aria-pressed="true"
       title="12-zone dribble heatmap with per-attempt markers">Dribble zones</button>
+    <span class="effect-sep" aria-hidden="true"></span>
+    <span class="effects-label" title="Presentation layers, outside the shuffle rotation">Motion</span>
+    <button type="button" class="effect-toggle" data-effect="ballTrail" aria-pressed="true"
+      title="White tapered trail behind the moving ball">Ball trail</button>
+    <button type="button" class="effect-toggle" data-effect="carrierGrow" aria-pressed="true"
+      title="Ease the marker of the player in possession a little larger">Carrier grow</button>
     <span class="effect-sep" aria-hidden="true"></span>
     <button type="button" id="shuffle-effects" aria-pressed="false"
       title="Show one enabled analytical effect at a time">🔀 Shuffle effects</button>
@@ -608,9 +895,140 @@
       <h2>Analysis Map <span class="hint" id="minimap-title">—</span></h2>
       <canvas id="minimap" width="280" height="180"></canvas>
       <h2>Highlights <span class="hint" id="highlight-title">—</span></h2>
+      <!-- 3D replay CTA: lives in the Highlights stack, never over the pitch. -->
+      <div id="replay3d-card" role="region" aria-label="3D highlight replay" hidden>
+        <button type="button" id="r3d-card-open" class="r3d-card-main" disabled>
+          <span class="r3d-status" id="r3d-card-status">READY</span>
+          <span class="r3d-card-play" aria-hidden="true">▶</span>
+          <span class="r3d-card-event" id="r3d-card-event">Goal</span>
+          <span class="r3d-card-meta" id="r3d-card-meta">05:00 · Home</span>
+        </button>
+        <div class="r3d-card-bar" aria-hidden="true"><i id="r3d-card-progress"></i></div>
+      </div>
       <canvas id="highlight" width="280" height="180"></canvas>
       <h2>Momentum <span class="hint">xT model est.</span></h2>
       <canvas id="momentum" width="300" height="90"></canvas>
+    </aside>
+  </div>
+
+  <!-- ── 3D highlights replay theatre ─────────────────────────
+       Opt-in overlay; its canvas is only created/rendered when opened. -->
+  <div id="replay3d-theater" hidden aria-hidden="true">
+    <div class="r3d-shell" role="dialog" aria-modal="true" aria-labelledby="r3d-title">
+      <header class="r3d-head">
+        <div class="r3d-brand">
+          <span class="r3d-brand-mark">GEV</span>
+          <span class="r3d-brand-sub">3D Replay</span>
+        </div>
+        <div class="r3d-fixture">
+          <strong id="r3d-title">Home vs Away</strong>
+          <span id="r3d-score">0 – 0</span>
+        </div>
+        <button type="button" id="r3d-close" class="r3d-close" aria-label="Close 3D replay">Close ✕</button>
+      </header>
+
+      <div class="r3d-main">
+      <div class="r3d-stage" id="r3d-viewport">
+        <canvas id="r3d-canvas" aria-label="3D replay of the highlight"></canvas>
+        <div class="r3d-loading" id="r3d-loading" hidden>
+          <span class="r3d-spinner" aria-hidden="true"></span>
+          <span class="r3d-loading-title">Building the stadium</span>
+          <span class="r3d-loading-sub" id="r3d-loading-sub">Loading three.js…</span>
+        </div>
+        <div class="r3d-error" id="r3d-error" hidden>
+          <span class="r3d-error-title">3D replay unavailable</span>
+          <span class="r3d-error-sub" id="r3d-error-sub"></span>
+        </div>
+        <div class="r3d-hud" aria-hidden="true">
+          <div class="r3d-hud-event">
+            <span class="r3d-hud-label" id="r3d-event-label">Goal</span>
+            <span class="r3d-hud-clock" id="r3d-event-clock">05:00</span>
+            <span class="r3d-hud-team" id="r3d-event-team">Home</span>
+          </div>
+          <div class="r3d-hud-tag">Replay <span id="r3d-speed-tag">0.5×</span></div>
+        </div>
+        <div class="r3d-title-card" id="r3d-title-card">
+          <span class="r3d-tc-kicker">God's Eye View · 3D</span>
+          <span class="r3d-tc-main" id="r3d-tc-main">Goal · Home</span>
+          <span class="r3d-tc-sub" id="r3d-tc-sub">05:00 · replay 04:45–05:15</span>
+        </div>
+      </div>
+
+      <aside class="r3d-side" aria-label="3D analysis">
+        <div class="r3d-fxbar" id="r3d-fx" role="group" aria-label="3D analysis layers">
+          <button type="button" class="r3d-fx-toggle" data-fx="heatmap" aria-pressed="true">Heat</button>
+          <button type="button" class="r3d-fx-toggle" data-fx="network" aria-pressed="true">Network</button>
+          <button type="button" class="r3d-fx-toggle" data-fx="offside" aria-pressed="true">Offside</button>
+          <button type="button" class="r3d-fx-toggle" data-fx="analysis" aria-pressed="true">Shape</button>
+          <button type="button" class="r3d-fx-toggle" data-fx="passingLanes" aria-pressed="true">Lanes</button>
+          <button type="button" class="r3d-fx-toggle" data-fx="attackChannels" aria-pressed="true">Runs</button>
+          <button type="button" class="r3d-fx-toggle" data-fx="visionCone" aria-pressed="true">Vision</button>
+          <button type="button" class="r3d-fx-toggle" data-fx="dribbles" aria-pressed="true">Dribbles</button>
+          <button type="button" id="r3d-shuffle" aria-pressed="false" title="Show one enabled layer at a time">🔀</button>
+        </div>
+        <div class="r3d-presets" id="r3d-presets" role="group" aria-label="3D analysis preset">
+          <button type="button" data-r3d-preset="broadcast">Broadcast</button>
+          <button type="button" data-r3d-preset="tactical" aria-pressed="true">Tactical</button>
+          <button type="button" data-r3d-preset="clean">Clean</button>
+          <button type="button" data-r3d-preset="all">All</button>
+        </div>
+        <details class="r3d-lab-details" id="r3d-lab-details">
+          <summary>Layer styles</summary>
+          <div class="r3d-lab" id="r3d-lab"></div>
+        </details>
+        <div class="r3d-readout" id="r3d-readout" aria-live="polite"></div>
+        <canvas id="r3d-minimap" width="280" height="180" aria-label="3D analysis minimap"></canvas>
+        <canvas id="r3d-momentum" width="300" height="90" aria-label="3D momentum strip"></canvas>
+        <div class="r3d-feed" id="r3d-feed" aria-label="Events in this replay"></div>
+        <button type="button" id="r3d-panel-open" class="r3d-panel-open">Player analysis</button>
+      </aside>
+      </div>
+
+      <footer class="r3d-controls">
+        <button type="button" id="r3d-play" class="r3d-play" aria-label="Pause replay" disabled>❚❚</button>
+        <div class="r3d-timeline">
+          <input type="range" id="r3d-scrub" min="0" max="1000" step="1" value="0"
+            aria-label="Replay position" disabled />
+          <div class="r3d-time">
+            <span>Replay <strong id="r3d-clock">00:00</strong></span>
+            <span id="r3d-window">04:45 – 05:15</span>
+          </div>
+        </div>
+        <div class="r3d-group" role="group" aria-label="Replay speed" id="r3d-speeds">
+          <button type="button" data-speed="0.25">0.25×</button>
+          <button type="button" data-speed="0.5" aria-pressed="true">0.5×</button>
+          <button type="button" data-speed="1">1×</button>
+        </div>
+        <div class="r3d-group" role="group" aria-label="Camera" id="r3d-cameras">
+          <button type="button" data-cam="auto" aria-pressed="true">Auto</button>
+          <button type="button" data-cam="broadcast">Broadcast</button>
+          <button type="button" data-cam="wide">Wide</button>
+          <button type="button" data-cam="follow">Follow</button>
+          <button type="button" data-cam="close">Close</button>
+          <button type="button" data-cam="goal">Goal</button>
+          <button type="button" data-cam="tactical">Tactical</button>
+        </div>
+        <div class="r3d-group" role="group" aria-label="FX quality" id="r3d-quality">
+          <button type="button" data-fxq="high" aria-pressed="true">FX High</button>
+          <button type="button" data-fxq="medium">Med</button>
+          <button type="button" data-fxq="low">Low</button>
+        </div>
+      </footer>
+    </div>
+
+    <aside id="r3d-player-panel" aria-label="3D player analysis">
+      <div class="pp-head">
+        <div class="pp-tabs" role="tablist" aria-label="Analysis scope">
+          <button type="button" role="tab" data-tab="team" aria-selected="true"
+            aria-controls="r3d-pp-body">Team</button>
+          <button type="button" role="tab" data-tab="player" aria-selected="false"
+            aria-controls="r3d-pp-body" tabindex="-1">Player</button>
+        </div>
+        <button type="button" class="pp-close" aria-label="Close analysis panel">✕</button>
+      </div>
+      <div class="pp-context"></div>
+      <div class="pp-body" id="r3d-pp-body" role="tabpanel"></div>
+      <div class="pp-actions"></div>
     </aside>
   </div>
 
@@ -649,6 +1067,6 @@
     <span><i class="heat-swatch" style="background:linear-gradient(90deg, rgba(80,220,140,0.75), rgba(230,199,74,0.75), rgba(239,75,75,0.75))"></i>Zones · dribble volume</span>
   </div>
 
-  <script type="module" src="./app.js?v=27"></script>
+  <script type="module" src="./app.js?v=31"></script>
 </body>
 </html>

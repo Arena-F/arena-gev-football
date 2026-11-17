@@ -6,8 +6,8 @@ const STORAGE_KEY = 'gev.preset';
 const ALL = Object.freeze(EFFECTS.map((effect) => effect.key));
 
 export const PRESETS = Object.freeze({
-  broadcast: Object.freeze(['heatmap', 'offside', 'analysis']),
-  tactical: Object.freeze(['heatmap', 'network', 'offside', 'analysis', 'passingLanes', 'attackChannels', 'visionCone']),
+  broadcast: Object.freeze(['heatmap', 'offside', 'analysis', 'ballTrail', 'carrierGrow']),
+  tactical: Object.freeze(['heatmap', 'network', 'offside', 'analysis', 'passingLanes', 'attackChannels', 'visionCone', 'ballTrail', 'carrierGrow']),
   clean: Object.freeze([]),
   all: ALL,
 });

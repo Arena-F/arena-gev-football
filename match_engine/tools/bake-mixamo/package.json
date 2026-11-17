@@ -1,0 +1,12 @@
+{
+  "name": "@arena-gev/bake-mixamo",
+  "private": true,
+  "type": "module",
+  "description": "Offline retargeter: Mixamo FBX -> seek-safe quaternion clips for the 3D replay",
+  "scripts": {
+    "bake": "node bake.mjs"
+  },
+  "dependencies": {
+    "three": "^0.186.0"
+  }
+}

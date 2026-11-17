@@ -19,8 +19,8 @@ export const VARIANTS = Object.freeze({
     Object.freeze({ id: 'minimal', label: 'Thin trace' }),
   ]),
   network: Object.freeze([
-    Object.freeze({ id: 'outlet', label: 'Outlet per player' }),
-    Object.freeze({ id: 'mesh', label: 'Full mesh' }),
+    Object.freeze({ id: 'outlet', label: 'Unit outlet' }),
+    Object.freeze({ id: 'mesh', label: 'Unit webs' }),
   ]),
   heatmap: Object.freeze([
     Object.freeze({ id: 'raster', label: 'Raster' }),
@@ -29,6 +29,10 @@ export const VARIANTS = Object.freeze({
   analysis: Object.freeze([
     Object.freeze({ id: 'classic', label: 'Classic' }),
     Object.freeze({ id: 'minimal', label: 'Minimal' }),
+  ]),
+  carrierRing: Object.freeze([
+    Object.freeze({ id: 'comet', label: 'Comet gradient' }),
+    Object.freeze({ id: 'duo', label: 'Counter-spin duo' }),
   ]),
   field: Object.freeze([
     Object.freeze({ id: 'classic', label: 'Classic' }),
@@ -42,10 +46,11 @@ const STORAGE_PREFIX = 'gev.variant.';
 // arrow-free run lane. Classic remains one click away in the lab.
 const DEFAULTS = Object.freeze({
   visionCone: 'soft-wedge',
-  network: 'outlet',
+  network: 'mesh',
   heatmap: 'raster',
   passLanes: 'corridor',
   runChannels: 'lanes',
+  carrierRing: 'comet',
 });
 const current = new Map(Object.keys(VARIANTS).map((k) => [k, DEFAULTS[k] ?? 'classic']));
 

@@ -2,6 +2,7 @@
 
 import { smoothstep } from './easing.js';
 import { PITCH } from './analysis.js';
+import { networkLevel } from './graphs.js';
 
 // Screen-space hit targets for the pass-lane destination chips. The app reads
 // this after each frame so a chip can open the receiver's player panel.
@@ -194,9 +195,12 @@ export function drawAnalysis(ctx, toScreen, players, team, alpha, ball, possessi
 
   if (hasCarrier) {
     const [cx, cy] = toScreen(carrier.x, carrier.y);
+    // The carrier body grows under the "Carrier grow" layer; widen the ring by
+    // the same amount so the two never overlap and read as one marker.
+    const ringRadius = Number.isFinite(options?.ringRadius) ? options.ringRadius : 7;
 
     ctx.beginPath();
-    ctx.arc(cx, cy, 7, 0, Math.PI * 2);
+    ctx.arc(cx, cy, ringRadius, 0, Math.PI * 2);
     ctx.strokeStyle = `rgba(${teamRgb},${(0.7 * alpha).toFixed(3)})`;
     ctx.lineWidth = 1.3;
     ctx.stroke();
@@ -943,13 +947,125 @@ export function drawAttackChannels(ctx, toScreen, channels, outerAlpha = 1, vari
 }
 
 // ── Passing network (on-pitch, live player positions) ───────────
+// Unit webs: defenders, midfielders and attackers each own an independent
+// network in the possession team's colours — DEF teal, MID violet, ATT rose.
+// Link strength steps up a per-unit pass ladder (DEF 1/4/10/22, MID 1/3/8/18,
+// FWD 1/2/5/12); cross-unit passes never form a wire.
+/** Unit link colours as [r, g, b]. */
+export const NETWORK_UNIT_COLORS = Object.freeze({
+  def: Object.freeze([56, 214, 196]),
+  mid: Object.freeze([167, 139, 250]),
+  fwd: Object.freeze([251, 113, 133]),
+});
+
+/** Unit link colours as CSS hex (legend / lab use). */
+export const NETWORK_UNIT_CSS = Object.freeze({
+  def: '#38d6c4',
+  mid: '#a78bfa',
+  fwd: '#fb7185',
+});
+
+// Tiered link styles per strength level 0–4: a clearly visible very light
+// baseline thread for pairs that have yet to combine, then four steps up the
+// unit's pass ladder as they keep exchanging the ball. Mesh stays legible
+// because the baseline is light and only real channels reach full strength;
+// outlet wires run brighter with a glow pass.
+const NETWORK_MESH_STYLE = Object.freeze([
+  Object.freeze({ alpha: 0.13, width: 1.0 }),
+  Object.freeze({ alpha: 0.22, width: 1.25 }),
+  Object.freeze({ alpha: 0.32, width: 1.65 }),
+  Object.freeze({ alpha: 0.44, width: 2.15 }),
+  Object.freeze({ alpha: 0.58, width: 2.8 }),
+]);
+const NETWORK_OUTLET_STYLE = Object.freeze([
+  Object.freeze({ alpha: 0.05, width: 0.9 }),
+  Object.freeze({ alpha: 0.135, width: 1.15 }),
+  Object.freeze({ alpha: 0.225, width: 1.55 }),
+  Object.freeze({ alpha: 0.33, width: 2.05 }),
+  Object.freeze({ alpha: 0.47, width: 2.7 }),
+]);
+
+const NETWORK_FADE_IN_TAU = 0.2;
+const NETWORK_FADE_OUT_TAU = 0.6;
+const NETWORK_EASE_TAU = 0.25;
+
+function networkTarget(unit, n, outlet) {
+  const table = outlet ? NETWORK_OUTLET_STYLE : NETWORK_MESH_STYLE;
+  const level = networkLevel(unit ?? 'mid', n ?? 0);
+  return table[Math.max(0, Math.min(table.length - 1, level))];
+}
+
+function networkRgbFor(unit, team) {
+  const c = NETWORK_UNIT_COLORS[unit];
+  if (c) return [c[0], c[1], c[2]];
+  return team === 1 ? [47, 129, 247] : [242, 242, 242];
+}
+
+/**
+ * Per-link fade state so formation changes morph instead of popping: new
+ * wires fade in, removed or cross-unit wires fade out, and surviving wires
+ * ease their width/brightness/colour toward the new tier.
+ */
+export function createNetworkFade() {
+  const state = new Map(); // pairKey -> {a,b,unit,alpha,width,rgb}
+  function pairKey(a, b) {
+    return a < b ? `${a}|${b}` : `${b}|${a}`;
+  }
+  function update(links, dt, outlet, team) {
+    const step = Math.max(0, dt || 0);
+    const kIn = 1 - Math.exp(-step / NETWORK_FADE_IN_TAU);
+    const kOut = 1 - Math.exp(-step / NETWORK_FADE_OUT_TAU);
+    const kEase = 1 - Math.exp(-step / NETWORK_EASE_TAU);
+    const seen = new Set();
+    const targetOf = (l) => {
+      const t = networkTarget(l.unit, l.n, outlet);
+      return { alpha: t.alpha, width: t.width, rgb: networkRgbFor(l.unit, team) };
+    };
+    for (const l of links ?? []) {
+      if (!l || !l.a || !l.b) continue;
+      const key = pairKey(l.a, l.b);
+      seen.add(key);
+      const target = targetOf(l);
+      const cur = state.get(key);
+      if (!cur) {
+        state.set(key, {
+          a: l.a, b: l.b, unit: l.unit ?? null,
+          alpha: 0, width: target.width, rgb: target.rgb.slice(),
+          target,
+        });
+      } else {
+        cur.a = l.a;
+        cur.b = l.b;
+        cur.unit = l.unit ?? null;
+        cur.target = target;
+      }
+    }
+    // Ease everything toward its target; unseen entries decay to zero.
+    for (const [key, cur] of state) {
+      const target = seen.has(key) ? cur.target : { alpha: 0, width: cur.width, rgb: cur.rgb };
+      const kA = target.alpha > cur.alpha ? kIn : kOut;
+      cur.alpha += (target.alpha - cur.alpha) * (step > 0 ? kA : 1);
+      cur.width += (target.width - cur.width) * (step > 0 ? kEase : 1);
+      for (let i = 0; i < 3; i++) {
+        cur.rgb[i] += (target.rgb[i] - cur.rgb[i]) * (step > 0 ? kEase : 1);
+      }
+      if (!seen.has(key) && cur.alpha < 0.01) state.delete(key);
+    }
+    return [...state.values()];
+  }
+  function reset() {
+    state.clear();
+  }
+  return { update, reset };
+}
 /**
  * `livePositions` maps `team:shirt` to the current pitch position. When
  * present, nodes and links are anchored there, so the network moves with the
  * players instead of sitting on historical average-touch spots. The roster
- * snapshot carries every shirt, so the network reads as the whole team:
- * pairs that have barely exchanged the ball are a whisper, pairs that keep
- * exchanging it thicken into the team's real passing channels. Links arrive
+ * snapshot carries every shirt, grouped into dynamic bands that chain end to
+ * end: pairs that have barely exchanged the ball are a light baseline thread,
+ * pairs that keep exchanging it thicken into the band's real passing
+ * channels, and heavy cross-band pairs earn their own wire. Links arrive
  * sorted weakest-first, so the strongest channel is always drawn on top.
  */
 export function drawPassingNetwork(
@@ -960,11 +1076,18 @@ export function drawPassingNetwork(
   team = 0,
   livePositions = null,
   pulse = null,
+  options = {},
 ) {
   if (!snapshot || !snapshot.nodes || snapshot.nodes.length === 0 || outerAlpha <= 0.01) return;
-  if ((snapshot.streak ?? 0) < 3) return;
   const outlet = snapshot.mode === 'outlet';
+  // Outlet wires describe the current possession window, so they need a live
+  // sequence behind them. The mesh is match-long: its very light baseline web
+  // is already there from the first frame of possession and only thickens as
+  // pairs combine, so it never waits on the streak.
+  if (outlet && (snapshot.streak ?? 0) < 3) return;
   const maxTouches = snapshot.maxTouches || 1;
+  const fade = options?.fade ?? null;
+  const dt = Number.isFinite(options?.dt) ? options.dt : 0;
   const resolve = (node) => {
     if (!livePositions) return node;
     const key = `${node.team}:${node.shirt}`;
@@ -976,48 +1099,72 @@ export function drawPassingNetwork(
     return live ?? null;
   };
   const nodeByKey = new Map(snapshot.nodes.map((n) => [`${n.team}:${n.shirt}`, n]));
+  // Unit webs when the snapshot carries units; otherwise the legacy team
+  // colour keeps old callers rendering exactly as before.
+  const unitMode = snapshot.nodes.some((n) => n.unit === 'def' || n.unit === 'mid' || n.unit === 'fwd');
+  const fallbackRgb = team === 1 ? [47, 129, 247] : [242, 242, 242];
+  const rgbOf = (unit) => NETWORK_UNIT_COLORS[unit] ?? fallbackRgb;
+  const cssOf = (rgb) => `${rgb[0]},${rgb[1]},${rgb[2]}`;
   ctx.save();
   ctx.lineCap = 'round';
-  // Links first, behind the nodes. Absolute intensity: zero passes is a faint
-  // thread, one pass is barely there, eight-plus is a clear channel. The scale
-  // is fixed, not normalised to the strongest current link, so a pair that
-  // stops combining actually thins out instead of staying the local maximum.
-  const logMax = Math.log2(1 + (outlet ? 4 : 8));
+  // Links first, behind the nodes. Tiered intensity: a pair steps up its
+  // unit's pass ladder as it keeps combining and steps back down (toward a
+  // ghost) when it stops, so strength reads as absolute count, never as a
+  // normalised local maximum.
   const pairSet = new Set();
   for (const l of snapshot.links ?? []) {
+    pairSet.add(l.a < l.b ? `${l.a}|${l.b}` : `${l.b}|${l.a}`);
+  }
+  const displayLinks = fade
+    ? fade.update(snapshot.links ?? [], dt, outlet, team)
+      .map((d) => ({ a: d.a, b: d.b, unit: d.unit, n: 0, alpha: d.alpha, width: d.width, rgb: d.rgb }))
+    : (snapshot.links ?? []).map((l) => {
+        if (unitMode && l.unit) {
+          const t = networkTarget(l.unit, l.n, outlet);
+          return { a: l.a, b: l.b, unit: l.unit, n: l.n, alpha: t.alpha, width: t.width, rgb: rgbOf(l.unit) };
+        }
+        // Legacy fallback: the old continuous log scale in team colours.
+        const logMax = Math.log2(1 + (outlet ? 4 : 8));
+        const t = l.n > 0 ? Math.min(1, Math.log2(1 + l.n) / logMax) : 0;
+        const alpha = outlet ? 0.15 + 0.5 * t : (l.n > 0 ? 0.05 + 0.5 * t * t : 0.11);
+        const width = outlet ? 1.0 + 1.9 * t : (l.n > 0 ? 0.9 + 2.1 * t : 1.0);
+        return { a: l.a, b: l.b, unit: null, n: l.n, alpha, width, rgb: fallbackRgb };
+      });
+  // Weakest first so the strongest channel is always drawn on top.
+  displayLinks.sort((x, y) => x.alpha - y.alpha);
+  for (const l of displayLinks) {
+    if ((l.alpha ?? 0) * outerAlpha < 0.004) continue;
     const nodeA = nodeByKey.get(l.a);
     const nodeB = nodeByKey.get(l.b);
     if (!nodeA || !nodeB) continue;
     const a = resolve(nodeA);
     const b = resolve(nodeB);
     if (!a || !b) continue;
-    pairSet.add(l.a < l.b ? `${l.a}|${l.b}` : `${l.b}|${l.a}`);
     const [ax, ay] = toScreen(a.x, a.y);
     const [bx, by] = toScreen(b.x, b.y);
-    const t = l.n > 0 ? Math.min(1, Math.log2(1 + l.n) / logMax) : 0;
-    const alpha = (outlet
-      ? 0.15 + 0.5 * t
-      : (l.n > 0 ? 0.05 + 0.5 * t * t : 0.032)) * outerAlpha;
-    ctx.strokeStyle = team === 1 ? 'rgba(47,129,247,1)' : 'rgba(242,242,242,1)';
+    const alpha = l.alpha * outerAlpha;
+    ctx.strokeStyle = `rgba(${cssOf(l.rgb)},1)`;
     // Outlet mode gets the same glow-under-core treatment as the other live
     // layers; the mesh keeps its quiet web so it can still read as a whole.
     if (outlet) {
       ctx.globalAlpha = alpha * 0.3;
-      ctx.lineWidth = (1.0 + 1.9 * t) * 2.8;
+      ctx.lineWidth = l.width * 2.8;
       ctx.beginPath();
       ctx.moveTo(ax, ay);
       ctx.lineTo(bx, by);
       ctx.stroke();
     }
     ctx.globalAlpha = alpha;
-    ctx.lineWidth = outlet ? 1.0 + 1.9 * t : (l.n > 0 ? 0.9 + 2.1 * t : 0.8);
+    ctx.lineWidth = l.width;
     ctx.beginPath();
     ctx.moveTo(ax, ay);
     ctx.lineTo(bx, by);
     ctx.stroke();
   }
   // Pass pulse: one bead travelling from the passer to the receiver on the
-  // wire that represents the completed pass.
+  // wire that represents the completed pass. Any pair the snapshot links —
+  // same band or earned cross-band — carries the bead in the higher band's
+  // colour.
   if (pulse && nodeByKey.size > 0) {
     const pair = pulse.a < pulse.b ? `${pulse.a}|${pulse.b}` : `${pulse.b}|${pulse.a}`;
     const nodeA = nodeByKey.get(pulse.a);
@@ -1029,15 +1176,20 @@ export function drawPassingNetwork(
         const [ax, ay] = toScreen(a.x, a.y);
         const [bx, by] = toScreen(b.x, b.y);
         const u = smoothstep(pulse.progress ?? 0);
-        const fade = Math.sin(Math.PI * Math.min(1, Math.max(0, pulse.progress ?? 0)));
+        const fadeAmt = Math.sin(Math.PI * Math.min(1, Math.max(0, pulse.progress ?? 0)));
         const px = ax + (bx - ax) * u;
         const py = ay + (by - ay) * u;
-        const rgb = team === 1 ? '120,185,255' : '255,255,255';
+        // Earned cross-band wires bead in the higher band's colour.
+        const rank = (unit) => (unit === 'fwd' ? 2 : unit === 'mid' ? 1 : unit === 'def' ? 0 : -1);
+        const pulseUnit = unitMode
+          ? (rank(nodeA.unit) >= rank(nodeB.unit) ? nodeA.unit ?? nodeB.unit : nodeB.unit)
+          : null;
+        const rgb = cssOf(pulseUnit ? rgbOf(pulseUnit) : fallbackRgb);
         // Outlet mode only keeps each player's top wire; a completed pass to
-        // any other teammate still deserves a pulse, so give the bead a
-        // transient ghost thread that fades with it.
+        // any other same-band teammate still deserves a pulse, so give the
+        // bead a transient ghost thread that fades with it.
         if (!pairSet.has(pair)) {
-          ctx.globalAlpha = 0.11 * fade * outerAlpha;
+          ctx.globalAlpha = 0.11 * fadeAmt * outerAlpha;
           ctx.strokeStyle = `rgba(${rgb},1)`;
           ctx.lineWidth = 1;
           ctx.beginPath();
@@ -1045,12 +1197,12 @@ export function drawPassingNetwork(
           ctx.lineTo(bx, by);
           ctx.stroke();
         }
-        ctx.globalAlpha = 0.2 * fade * outerAlpha;
+        ctx.globalAlpha = 0.2 * fadeAmt * outerAlpha;
         ctx.fillStyle = `rgba(${rgb},1)`;
         ctx.beginPath();
         ctx.arc(px, py, 8, 0, Math.PI * 2);
         ctx.fill();
-        ctx.globalAlpha = 0.9 * fade * outerAlpha;
+        ctx.globalAlpha = 0.9 * fadeAmt * outerAlpha;
         ctx.beginPath();
         ctx.arc(px, py, 3, 0, Math.PI * 2);
         ctx.fill();
@@ -1059,13 +1211,13 @@ export function drawPassingNetwork(
   }
   // Node rings sit around the live bodies (the body itself already carries
   // the shirt number, so the ring only encodes involvement volume).
-  const rgb = team === 1 ? '47,129,247' : '242,242,242';
   for (const n of snapshot.nodes) {
     const liveN = resolve(n);
     if (!liveN) continue;
     const [sx, sy] = toScreen(liveN.x, liveN.y);
     const involvement = n.n > 0 ? Math.sqrt(n.n / maxTouches) : 0;
     const r = 7 + 2.5 * involvement;
+    const rgb = cssOf(unitMode && n.unit ? rgbOf(n.unit) : fallbackRgb);
     ctx.globalAlpha = (0.1 + 0.1 * involvement) * outerAlpha;
     ctx.beginPath();
     ctx.arc(sx, sy, r, 0, Math.PI * 2);

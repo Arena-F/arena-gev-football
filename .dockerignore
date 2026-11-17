@@ -1,6 +1,7 @@
 # Keep the Docker build context small and free of build output.
 .git/
 .commandcode/
+.agents/
 
 # Rust build artifacts
 match_engine/target/
@@ -10,3 +11,8 @@ match_engine/pkg-node/
 match_engine/web/pkg/
 match_engine/web/matches/
 match_engine/web/matches.json
+
+# Offline Mixamo baker and raw FBX sources (not needed at runtime; the baked
+# clips live in match_engine/web/replay3d/mixamoClips.js)
+match_engine/tools/
+*.fbx

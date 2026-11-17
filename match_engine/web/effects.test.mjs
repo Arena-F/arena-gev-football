@@ -5,6 +5,9 @@ import { readFileSync } from 'node:fs';
 import { EFFECTS, SHUFFLE_SECONDS, createEffectController } from './effects.js';
 
 const keys = EFFECTS.map((effect) => effect.key);
+const shuffleKeys = EFFECTS
+  .filter((effect) => effect.shuffle !== false)
+  .map((effect) => effect.key);
 
 test('the effects bar exposes every controller layer and the shuffle button', () => {
   const html = readFileSync(new URL('./index.html', import.meta.url), 'utf8');
@@ -40,18 +43,40 @@ test('shuffle shows one enabled layer and advances every four seconds', () => {
   const effects = createEffectController();
   effects.setShuffle(true);
   assert.equal(effects.shuffleActive, true);
-  assert.equal(effects.currentKey, keys[0]);
-  assert.equal(effects.isVisible(keys[0]), true);
-  for (const key of keys.slice(1)) assert.equal(effects.isVisible(key), false);
+  assert.equal(effects.currentKey, shuffleKeys[0]);
+  assert.equal(effects.isVisible(shuffleKeys[0]), true);
+  for (const key of shuffleKeys.slice(1)) assert.equal(effects.isVisible(key), false);
 
   effects.update(SHUFFLE_SECONDS - 0.1);
-  assert.equal(effects.currentKey, keys[0]);
+  assert.equal(effects.currentKey, shuffleKeys[0]);
   effects.update(0.1);
-  assert.equal(effects.currentKey, keys[1]);
+  assert.equal(effects.currentKey, shuffleKeys[1]);
 
   // Wrap through the whole order back to the first layer.
-  effects.update(SHUFFLE_SECONDS * (keys.length - 1));
-  assert.equal(effects.currentKey, keys[0]);
+  effects.update(SHUFFLE_SECONDS * (shuffleKeys.length - 1));
+  assert.equal(effects.currentKey, shuffleKeys[0]);
+});
+
+test('shuffle rotates only the analytical layers, never the motion polish', () => {
+  const effects = createEffectController();
+  assert.ok(keys.includes('ballTrail'));
+  assert.ok(keys.includes('carrierGrow'));
+  assert.ok(!shuffleKeys.includes('ballTrail'));
+  assert.ok(!shuffleKeys.includes('carrierGrow'));
+
+  effects.setShuffle(true);
+  // Presentation layers stay on screen for every rotation frame.
+  for (const key of ['ballTrail', 'carrierGrow']) {
+    assert.equal(effects.isVisible(key), true);
+  }
+  effects.update(SHUFFLE_SECONDS);
+  assert.equal(effects.isVisible('ballTrail'), true);
+  assert.equal(effects.isVisible('carrierGrow'), true);
+
+  // Their toggles still work independently during shuffle.
+  effects.setEnabled('carrierGrow', false);
+  assert.equal(effects.isVisible('carrierGrow'), false);
+  assert.equal(effects.isVisible('ballTrail'), true);
 });
 
 test('shuffle skips disabled layers and moves on when the current one is disabled', () => {

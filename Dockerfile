@@ -15,13 +15,13 @@ COPY match_engine/web ./web
 # generated bindings match the wasm-bindgen crate used to build the
 # wasm. Prefer the pre-built musl binary (fast); fall back to
 # compiling from source if the asset is unavailable.
-RUN WBG_VER=$(grep -A1 '^name = "wasm-bindgen"$' Cargo.lock \
-        | grep -oE 'version = "[0-9.]+"' | grep -oE '[0-9.]+') \
+RUN WBG_VER=$(python3 -c 'import re; content = open("Cargo.lock").read(); match = re.search(r"name = \"wasm-bindgen\"\nversion = \"([^\"]+)\"", content); print(match.group(1) if match else "")') \
+    && if [ -z "$WBG_VER" ]; then echo "Error: wasm-bindgen version not found in Cargo.lock" >&2; exit 1; fi \
     && ( curl -sSL "https://github.com/rustwasm/wasm-bindgen/releases/download/${WBG_VER}/wasm-bindgen-${WBG_VER}-x86_64-unknown-linux-musl.tar.gz" \
          -o /tmp/wbg.tar.gz \
          && tar xzf /tmp/wbg.tar.gz -C /tmp \
          && install -m755 "/tmp/wasm-bindgen-${WBG_VER}-x86_64-unknown-linux-musl/wasm-bindgen" /usr/local/bin/wasm-bindgen \
-       || cargo install wasm-bindgen-cli --version "$WBG_VER" )
+         || cargo install wasm-bindgen-cli --version "$WBG_VER" )
 
 RUN cargo build --target wasm32-unknown-unknown --release
 RUN wasm-bindgen --target web --out-dir web/pkg \

@@ -1,5 +1,6 @@
 # Command Code local session / tool state
 .commandcode/
+.agents/
 
 # OS / editor cruft
 .DS_Store
@@ -7,3 +8,11 @@ Thumbs.db
 *.swp
 .vscode/
 .idea/
+
+# Mixamo raw sources and local build dependencies. Only the baked motion data
+# in web/replay3d/mixamoClips.js is committed; Mixamo forbids redistributing
+# the raw character/animation files.
+*.fbx
+match_engine/tools/bake-mixamo/source/
+match_engine/web/replay3d/mixamo_source/
+node_modules/
