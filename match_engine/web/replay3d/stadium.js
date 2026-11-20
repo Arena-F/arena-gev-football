@@ -197,7 +197,7 @@ function makeLedTexture() {
   let i = 0;
   while (x < canvas.width) {
     const word = words[i % words.length];
-    ctx.fillStyle = i % 3 === 1 ? '#3fd07c' : '#dff8ea';
+    ctx.fillStyle = i % 3 === 1 ? '#52B4F5' : '#E9E6F7';
     ctx.fillText(word, x, canvas.height / 2 + 1);
     x += ctx.measureText(word).width + 64;
     i++;
@@ -645,7 +645,7 @@ function addFloodlights(group) {
 
 function makeCrowdPlacements() {
   const rand = mulberry32(0x474556);
-  const extras = ['#8b949e', '#c9d1d9', '#3fd07c', '#1f4f7a', '#14202b', '#ffd166'];
+  const extras = ['#A3A3A3', '#E9E6F7', '#52B44C', '#52B4F5', '#1E5F8A', '#C861D1'];
   const placements = [];
   const sides = [
     { axis: 'x', sign: -1, length: 132 },
@@ -815,7 +815,7 @@ function addCrowd(group, uniforms) {
   const color = new THREE.Color();
   for (let i = 0; i < placements.length; i++) {
     const p = placements[i];
-    color.set(p.kind === 'extra' ? p.extra : '#8b949e');
+    color.set(p.kind === 'extra' ? p.extra : '#A3A3A3');
     crowd.setColorAt(i, color);
   }
   crowd.instanceMatrix.needsUpdate = true;

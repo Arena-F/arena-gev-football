@@ -33,11 +33,13 @@ export const VARIANTS = Object.freeze({
   carrierRing: Object.freeze([
     Object.freeze({ id: 'comet', label: 'Comet gradient' }),
     Object.freeze({ id: 'duo', label: 'Counter-spin duo' }),
+    Object.freeze({ id: 'dotted', label: 'Rotating dots' }),
   ]),
   field: Object.freeze([
     Object.freeze({ id: 'classic', label: 'Classic' }),
     Object.freeze({ id: 'broadcast', label: 'Broadcast' }),
     Object.freeze({ id: 'night', label: 'Night' }),
+    Object.freeze({ id: 'figma', label: 'Football GEV' }),
   ]),
 });
 
@@ -51,6 +53,7 @@ const DEFAULTS = Object.freeze({
   passLanes: 'corridor',
   runChannels: 'lanes',
   carrierRing: 'comet',
+  field: 'figma',
 });
 const current = new Map(Object.keys(VARIANTS).map((k) => [k, DEFAULTS[k] ?? 'classic']));
 

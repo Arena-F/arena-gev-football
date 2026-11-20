@@ -10,6 +10,8 @@ test('variant catalog covers every analytical layer', () => {
   assert.ok(VARIANTS.carrierRing?.length >= 2, 'carrierRing');
   assert.ok(VARIANTS.carrierRing.some((v) => v.id === 'comet'));
   assert.ok(VARIANTS.carrierRing.some((v) => v.id === 'duo'));
+  assert.ok(VARIANTS.carrierRing.some((v) => v.id === 'dotted'));
+  assert.ok(VARIANTS.field.some((v) => v.id === 'figma'), 'Football GEV figma field');
 });
 
 test('variantsOf returns the catalog or empty', () => {
@@ -25,7 +27,7 @@ test('recommended defaults are the softer, labeled variants', () => {
   assert.equal(getVariant('heatmap'), 'raster');
   assert.equal(getVariant('analysis'), 'classic');
   assert.equal(getVariant('carrierRing'), 'comet');
-  assert.equal(getVariant('field'), 'classic');
+  assert.equal(getVariant('field'), 'figma');
 });
 
 test('setVariant validates and persists selection', () => {

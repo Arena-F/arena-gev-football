@@ -172,17 +172,53 @@
 
     /* Layout: pitch on the left, event panel on the right. */
     #app { display: flex; gap: 18px; align-items: flex-start; justify-content: center; flex-wrap: wrap; }
-    #stage { position: relative; display: inline-block; max-width: 100%; }
+    /* Football GEV Figma card: Frame 2147225007 — 327x266, #19133B, radius 11px. */
+    #stage {
+      position: relative; display: inline-block; max-width: 100%;
+      background: #19133B; border-radius: 11px; padding: 0 0 12px;
+      box-sizing: border-box;
+    }
+    .gev-pitchwrap { position: relative; display: block; }
     #gev-canvas {
-      background: #171437;
+      background: #0A2117;
       box-shadow: 0 18px 50px rgba(0, 0, 0, 0.55);
-      border-radius: 6px;
+      border-radius: 11px 11px 0 0;
       display: block;
       max-width: 100%;
       height: auto;
       touch-action: pan-y;
       cursor: default;
     }
+    /* Pitch ad boards: white vectors over the pitch edges, pointer-through. */
+    .gev-ads {
+      position: absolute; left: 0; right: 0; z-index: 4;
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 3px 9px 0; pointer-events: none;
+      color: #FFFFFF; opacity: 0.92;
+      font-family: 'Manrope', system-ui, sans-serif;
+    }
+    .gev-ads-top { top: 0; height: 18px; }
+    .gev-ads-bottom { bottom: 4px; height: 12px; justify-content: flex-end; }
+    .gev-ads .adobe { font-size: 8px; font-weight: 800; letter-spacing: 0.6px; }
+    .gev-ads .barclays {
+      position: absolute; left: 50%; transform: translateX(-50%);
+      font-size: 8px; font-weight: 800; letter-spacing: 1px;
+    }
+    .gev-ads .img123 { font-size: 7px; font-weight: 800; letter-spacing: 0.5px; }
+    .gev-ads .coke { font-size: 8px; font-weight: 800; font-style: italic; letter-spacing: 0.3px; }
+    /* GEV footer strip inside the #19133B card (Frame 46x10 centre + Puma left). */
+    .gev-footer {
+      position: relative; height: 22px; margin: 8px 14px 0;
+      display: flex; align-items: center; justify-content: center;
+      color: #FFFFFF;
+    }
+    .gev-footer .puma {
+      position: absolute; left: 0; top: 50%; transform: translateY(-50%);
+      font-size: 8px; font-weight: 800; letter-spacing: 1.2px;
+    }
+    .gev-footer .centre-mark { display: inline-flex; align-items: center; gap: 4px; opacity: 0.95; }
+    .gev-footer .centre-mark i { display: block; width: 22px; height: 10px; border: 1px solid #FFFFFF; border-radius: 1px; }
+    .gev-footer .centre-mark i:last-child { width: 18px; }
     /* Centre splash for big moments (inside the pitch). */
     #splash {
       position: absolute; top: 14px; right: 14px; left: auto; transform: none;
@@ -912,7 +948,21 @@
       <div id="match-list"></div>
     </aside>
     <div id="stage">
-      <canvas id="gev-canvas" width="1050" height="680"></canvas>
+      <div class="gev-pitchwrap">
+        <canvas id="gev-canvas" width="1050" height="680"></canvas>
+        <div class="gev-ads gev-ads-top" aria-hidden="true">
+          <span class="adobe">Adobe</span>
+          <span class="barclays">BARCLAYS</span>
+          <span class="img123">image123</span>
+        </div>
+        <div class="gev-ads gev-ads-bottom" aria-hidden="true">
+          <span class="coke">Coca-Cola</span>
+        </div>
+      </div>
+      <div class="gev-footer" aria-hidden="true">
+        <span class="puma">PUMA</span>
+        <span class="centre-mark"><i></i><i></i></span>
+      </div>
       <div id="splash"></div>
       <div id="halftime-banner">
         <div class="ht-title">HALF TIME</div>
@@ -1113,8 +1163,10 @@
   </aside>
 
   <div class="legend">
-    <span><i class="swatch" style="background:#52B4F5"></i>Home</span>
-    <span><i class="swatch" style="background:#C861D1"></i>Away</span>
+    <span><i class="swatch" style="background:transparent;border:3px solid #4F547D"></i>Home</span>
+    <span><i class="swatch" style="background:#4F547D;border-color:#4F547D"></i>Away</span>
+    <span><i class="swatch" style="background:#52B4F5"></i>Home GK / carrier</span>
+    <span><i class="swatch" style="background:#C861D1"></i>Away GK / carrier</span>
     <span><i class="swatch" style="background:#FFFFFF"></i>Ball</span>
     <span class="legend-sep"></span>
     <span><i class="line-swatch" style="border-top-color:#8CC6FB"></i>Analysis</span>

@@ -13,7 +13,7 @@
 //   is at his feet and back down when it moves on. The state is a per-shirt
 //   map, so a quick turnover grows the new carrier and shrinks the old one
 //   without a pop.
-// - `createCarrierRing` spins a white/pink possession band around that grown
+// - `createCarrierRing` spins a team-colour possession band around that grown
 //   marker; `drawCarrierRing` renders it and reads the same eased radius for
 //   its size and hand-over fade.
 //
@@ -31,15 +31,15 @@ export const TRAIL_SMOOTH_TAU = 0.18; // seconds, critically-damped ease for the
 export const TRAIL_RECENT_WINDOW_S = 0.4; // seconds, speed is measured over this trailing slice
 export const TRAIL_MAX_JUMP_M = 12;
 
-export const BALL_MARKER_RADIUS = 7;
-export const CARRIER_MARKER_RADIUS = 12;
+export const BALL_MARKER_RADIUS = 5;
+export const CARRIER_MARKER_RADIUS = 8;
 export const CARRIER_TAU = 0.14;
 
-// Possession ring: a white/pink band that spins around the carrier's grown
+// Possession ring: a team-colour band that spins around the carrier's grown
 // marker. The radius rides on the emphasis radius, so the ring widens with the
 // body and hands over to the next carrier at exactly the same pace.
 export const CARRIER_RING_GAP = 3.2; // px between body edge and ring centreline
-export const CARRIER_RING_WIDTH = 2.6;
+export const CARRIER_RING_WIDTH = 2;
 export const CARRIER_RING_SPIN = 1.5; // rad/s, roughly one turn every 4.2 s
 
 /**
@@ -315,14 +315,7 @@ export function drawBallTrail(ctx, toScreen, points, options = {}) {
 const TAU = Math.PI * 2;
 import { hexCss, BRAND } from './brand.js';
 
-const RING_WHITE = '255,255,255';
 const RING_DEFAULT = hexCss(BRAND.secondary); // Arena secondary (pink 500)
-
-/** Mix an 'r,g,b' colour toward white by t (0 = unchanged, 1 = white). */
-function tintTowardWhite(rgb, t) {
-  const parts = String(rgb).split(',').map(Number);
-  return parts.map((v) => Math.round(v + (255 - v) * t)).join(',');
-}
 
 function clamp01(value) {
   if (!Number.isFinite(value)) return 0;
@@ -374,11 +367,11 @@ function strokeRingArc(ctx, x, y, radius, width, alpha, angle, span, rgb) {
 }
 
 /**
- * Single rotating conic band: white and the team colour meet through blended
- * intermediate stops, so every edge of the ring is a gradient rather than a
- * hard seam. Returns false when the browser (or a headless canvas stub) has
- * no conic gradient support, letting the caller fall back to the dual-arc
- * look.
+ * Single rotating conic band in the team colour: bright and dim stops meet
+ * through blended edges, so the band reads as one continuous rotating comet
+ * with no white in it. Returns false when the browser (or a headless canvas
+ * stub) has no conic gradient support, letting the caller fall back to the
+ * dual-arc look.
  */
 function strokeConicRing(ctx, x, y, radius, width, alpha, angle, rgb) {
   if (typeof ctx.createConicGradient !== 'function') return false;
@@ -389,14 +382,13 @@ function strokeConicRing(ctx, x, y, radius, width, alpha, angle, rgb) {
     return false;
   }
   if (!gradient || typeof gradient.addColorStop !== 'function') return false;
-  const light = tintTowardWhite(rgb, 0.75);
-  gradient.addColorStop(0, 'rgba(255,255,255,0.98)');
-  gradient.addColorStop(0.16, `rgba(${light},0.98)`);
+  gradient.addColorStop(0, `rgba(${rgb},0.98)`);
+  gradient.addColorStop(0.16, `rgba(${rgb},0.45)`);
   gradient.addColorStop(0.33, `rgba(${rgb},0.99)`);
-  gradient.addColorStop(0.5, 'rgba(255,255,255,0.98)');
-  gradient.addColorStop(0.66, `rgba(${light},0.98)`);
+  gradient.addColorStop(0.5, `rgba(${rgb},0.98)`);
+  gradient.addColorStop(0.66, `rgba(${rgb},0.45)`);
   gradient.addColorStop(0.83, `rgba(${rgb},0.99)`);
-  gradient.addColorStop(1, 'rgba(255,255,255,0.98)');
+  gradient.addColorStop(1, `rgba(${rgb},0.98)`);
 
   ctx.save();
   ctx.globalAlpha = alpha;
@@ -412,15 +404,17 @@ function strokeConicRing(ctx, x, y, radius, width, alpha, angle, rgb) {
 }
 
 /**
- * White/team-colour possession ring around a grown carrier marker.
+ * Team-colour possession ring around a grown carrier marker — no white.
  *
- * `variant: 'comet'` (default) is one continuous conic gradient band whose
- * white and team-colour stops blend into each other; `duo` is two
- * counter-rotating tapered arcs (white and team colour) that brighten where
- * they cross. `rgb` is the carrier's team as an 'r,g,b' string (blue for
- * home, pink for away); it defaults to Arena secondary. Both spin at the
- * same speed, both respect `alpha` for the carrier hand-over fade, and both
- * fall back gracefully when conic gradients are unavailable.
+ * `variant: 'comet'` (default) is one continuous conic gradient band in the
+ * team colour whose bright and dim stops blend into each other as it spins;
+ * `duo` is two counter-rotating tapered team-colour arcs (full strength one
+ * way, half strength the other) that brighten where they cross; `dotted` is
+ * a dashed team-colour circle whose dash offset spins with the ring, so the
+ * dots travel around the carrier. `rgb` is the carrier's team as an 'r,g,b'
+ * string (blue for home, pink for away); it defaults to Arena secondary.
+ * Every variant respects `alpha` for the carrier hand-over fade, and comet
+ * falls back to the dual arcs when conic gradients are unavailable.
  */
 export function drawCarrierRing(ctx, x, y, options = {}) {
   if (!ctx || !Number.isFinite(x) || !Number.isFinite(y)) return false;
@@ -432,7 +426,7 @@ export function drawCarrierRing(ctx, x, y, options = {}) {
   const alpha = clamp01(Number.isFinite(options.alpha) ? options.alpha : 1);
   if (alpha <= 0.01) return false;
   const angle = Number.isFinite(options.angle) ? options.angle : 0;
-  const variant = options.variant === 'duo' ? 'duo' : 'comet';
+  const variant = options.variant === 'dotted' ? 'dotted' : options.variant === 'duo' ? 'duo' : 'comet';
   const rgb = typeof options.rgb === 'string' && options.rgb ? options.rgb : RING_DEFAULT;
 
   ctx.save();
@@ -442,18 +436,44 @@ export function drawCarrierRing(ctx, x, y, options = {}) {
     return true;
   }
 
+  if (variant === 'dotted') {
+    // Dotted: a faint team-colour base for continuity plus a dashed circle
+    // whose offset spins with the ring angle, so the dots travel round it.
+    // Round caps turn each dash into a dot.
+    ctx.globalAlpha = alpha * 0.18;
+    ctx.strokeStyle = `rgba(${rgb},1)`;
+    ctx.lineWidth = 1.2;
+    ctx.beginPath();
+    ctx.arc(x, y, radius, 0, TAU);
+    ctx.stroke();
+    ctx.globalCompositeOperation = 'lighter';
+    ctx.globalAlpha = alpha;
+    ctx.strokeStyle = `rgba(${rgb},1)`;
+    ctx.lineWidth = width;
+    ctx.lineCap = 'round';
+    ctx.setLineDash([0.1, 6.5]);
+    ctx.lineDashOffset = -angle * radius;
+    ctx.beginPath();
+    ctx.arc(x, y, radius, 0, TAU);
+    ctx.stroke();
+    ctx.globalCompositeOperation = 'source-over';
+    ctx.globalAlpha = 1;
+    ctx.restore();
+    return true;
+  }
+
   // Duo, and the comet fallback: two arcs spinning in opposite directions.
   // The faint base ring anchors the geometry so the arcs read as one band.
-  ctx.globalAlpha = alpha * 0.22;
-  ctx.strokeStyle = '#ffffff';
+  ctx.globalAlpha = alpha * 0.18;
+  ctx.strokeStyle = `rgba(${rgb},1)`;
   ctx.lineWidth = 1.2;
   ctx.beginPath();
   ctx.arc(x, y, radius, 0, TAU);
   ctx.stroke();
 
   ctx.globalCompositeOperation = 'lighter';
-  strokeRingArc(ctx, x, y, radius, width, alpha, angle, 2.5, RING_WHITE);
-  strokeRingArc(ctx, x, y, radius, width, alpha, Math.PI - angle, 2.5, rgb);
+  strokeRingArc(ctx, x, y, radius, width, alpha, angle, 2.5, rgb);
+  strokeRingArc(ctx, x, y, radius, width, alpha * 0.55, Math.PI - angle, 2.5, rgb);
   ctx.globalCompositeOperation = 'source-over';
   ctx.globalAlpha = 1;
   ctx.restore();

@@ -252,7 +252,7 @@ test('carrier ring spins steadily, freezes on pause and resets', () => {
   assert.equal(ring.angle, 0);
 });
 
-test('comet ring draws a blended white/pink conic band that rotates', () => {
+test('comet ring draws a team-colour conic band that rotates, without white', () => {
   const { ctx, calls, gradients } = makeRingCtx();
   assert.equal(drawCarrierRing(ctx, 100, 120, { radius: 12.2, alpha: 1, angle: 0.4 }), true);
   assert.equal(gradients.length, 1);
@@ -260,19 +260,20 @@ test('comet ring draws a blended white/pink conic band that rotates', () => {
   assert.ok(Math.abs(gradient.startAngle - 0.4) < 1e-9);
   assert.equal(gradient.x, 100);
   assert.equal(gradient.y, 120);
-  // White and pink stops alternate and the ends meet so there is no seam.
+  // Team-colour stops only, and the ends meet so there is no seam.
   assert.ok(gradient.stops.some(([, color]) => color.includes('200,97,209')));
-  assert.ok(gradient.stops.some(([, color]) => color.includes('255,255,255')));
+  assert.ok(!gradient.stops.some(([, color]) => String(color).includes('255,255,255')),
+    'no white in the team ring');
   assert.equal(gradient.stops[0][0], 0);
   assert.equal(gradient.stops[gradient.stops.length - 1][0], 1);
-  // The ring is stroked at the requested radius, with a pink glow.
+  // The ring is stroked at the requested radius, with a team-colour glow.
   const arc = calls.find(([name]) => name === 'arc');
   assert.equal(arc[3], 12.2);
   assert.ok(calls.some(([name, prop, value]) =>
     name === 'set' && prop === 'shadowColor' && String(value).includes('200,97,209')));
 });
 
-test('duo ring draws counter-rotating white and pink tapered arcs', () => {
+test('duo ring draws counter-rotating team-colour tapered arcs, without white', () => {
   const { ctx, calls } = makeRingCtx();
   assert.equal(drawCarrierRing(ctx, 0, 0, {
     radius: 12, alpha: 0.8, angle: 1, variant: 'duo',
@@ -282,17 +283,42 @@ test('duo ring draws counter-rotating white and pink tapered arcs', () => {
   const styles = calls
     .filter(([name, prop]) => name === 'set' && prop === 'strokeStyle')
     .map(([, , value]) => String(value));
-  assert.ok(styles.some((s) => s.includes('255,255,255')));
   assert.ok(styles.some((s) => s.includes('200,97,209')));
+  assert.ok(!styles.some((s) => s === '#ffffff' || s.includes('255,255,255')),
+    'no white strokes in the team ring');
   // Heads sit on opposite sides of the circle and travel in opposite directions.
   const starts = arcs.map(([, , , , a0]) => a0);
-  assert.ok(starts.some((a) => a > 0.9 && a < 1.1), 'white head at +angle');
-  assert.ok(starts.some((a) => a > Math.PI - 1.1 && a < Math.PI - 0.9), 'pink head mirrored');
+  assert.ok(starts.some((a) => a > 0.9 && a < 1.1), 'bright head at +angle');
+  assert.ok(starts.some((a) => a > Math.PI - 1.1 && a < Math.PI - 0.9), 'dim head mirrored');
   const alphas = calls
     .filter(([name, prop]) => name === 'set' && prop === 'globalAlpha')
     .map(([, , value]) => value);
   assert.ok(Math.min(...alphas) < 0.02, 'tails fade to nothing');
   assert.ok(Math.max(...alphas) > 0.7, 'heads stay solid');
+});
+
+test('dotted ring draws a rotating dashed team-colour circle', () => {
+  const { ctx, calls } = makeCtx();
+  assert.equal(drawCarrierRing(ctx, 50, 60, {
+    radius: 12, alpha: 1, angle: 0.7, variant: 'dotted', rgb: '82,180,245',
+  }), true);
+  const dashes = calls.filter(([name]) => name === 'setLineDash');
+  assert.ok(dashes.length > 0, 'dotted variant dashes the stroke');
+  assert.ok(dashes.some(([, pattern]) => Array.isArray(pattern) && pattern[1] > 2),
+    'dash pattern reads as dots');
+  const offsets = calls
+    .filter(([name, prop]) => name === 'set' && prop === 'lineDashOffset')
+    .map(([, , value]) => value);
+  assert.ok(offsets.length > 0, 'dash offset set');
+  assert.ok(offsets.every((o) => Math.abs(o - -0.7 * 12) < 1e-9),
+    'offset follows the ring angle so the dots rotate');
+  const styles = calls
+    .filter(([name, prop]) => name === 'set' && prop === 'strokeStyle')
+    .map(([, , value]) => String(value));
+  assert.ok(styles.some((s) => s.includes('82,180,245')), 'blue team ring');
+  assert.ok(!styles.some((s) => s === '#ffffff' || s.includes('255,255,255')),
+    'no white in the dotted ring');
+  assert.ok(calls.some(([name]) => name === 'arc'), 'circle stroked');
 });
 
 test('comet ring falls back to dual arcs when conic gradients are missing', () => {

@@ -117,6 +117,25 @@ export const TEAM_RGB = Object.freeze({
   away: Object.freeze(hexRgb(ARENA.pink[500])),
 });
 
+/** Football GEV Figma card + PitchScene tokens (see Figma paste). */
+export const GEV_FIGMA = Object.freeze({
+  card: '#19133B',
+  cardRadius: 11,
+  pitchTop: '#0F2C1E',
+  pitchMid: '#0A2117',
+  pitchBottom: '#071710',
+  glow: 'rgba(18,55,38,0.9)',
+  stripeA: '#151623',
+  stripeB: '#1D1934',
+  line: 'rgba(255,255,255,0.08)',
+  lineWidth: 0.914715,
+  nodeGrey: '#4F547D',
+  goalWash: 'rgba(255,255,255,0.1)',
+  carrierHaloHome: 'rgba(82,180,245,0.1)',
+  carrierHaloAway: 'rgba(200,97,209,0.4)',
+  ballLine: '#060310',
+});
+
 /** Type stacks. Display = Bebas Neue; body = Manrope. */
 export const FONTS = Object.freeze({
   display: "'Bebas Neue', 'Arial Narrow', sans-serif",

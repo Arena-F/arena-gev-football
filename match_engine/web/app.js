@@ -330,6 +330,111 @@ function pointerToCanvas(ev) {
 
 function drawPitch() {
   const palette = fieldTheme(getVariant('field'));
+  const isFigma = getVariant('field') === 'figma' || palette.figma === true;
+  if (isFigma) {
+    // Football GEV Figma PitchScene, in layer order:
+    // 1. vertical green gradient, 2. radial glow, 3. seven dark stripes.
+    const baseGrad = ctx.createLinearGradient(0, 0, 0, els.canvas.height);
+    baseGrad.addColorStop(0, '#0F2C1E');
+    baseGrad.addColorStop(0.5, '#0A2117');
+    baseGrad.addColorStop(1, '#071710');
+    ctx.fillStyle = baseGrad;
+    ctx.fillRect(0, 0, els.canvas.width, els.canvas.height);
+
+    const glow = ctx.createRadialGradient(
+      CX, OFFSET_Y + PITCH_PX_H * 0.35, 10,
+      CX, OFFSET_Y + PITCH_PX_H * 0.35, Math.max(PITCH_PX_W, PITCH_PX_H) * 0.75,
+    );
+    glow.addColorStop(0, 'rgba(18,55,38,0.9)');
+    glow.addColorStop(1, 'rgba(7,23,16,0)');
+    ctx.fillStyle = glow;
+    ctx.fillRect(0, 0, els.canvas.width, els.canvas.height);
+
+    // Seven vertical mowing stripes alternating #151623 / #1D1934.
+    const stripeCount = 7;
+    const stripeW = PITCH_PX_W / stripeCount;
+    for (let i = 0; i < stripeCount; i++) {
+      ctx.fillStyle = i % 2 === 0 ? '#151623' : '#1D1934';
+      ctx.fillRect(OFFSET_X + i * stripeW, OFFSET_Y, stripeW + 0.6, PITCH_PX_H);
+    }
+
+    const line = palette.line || 'rgba(255,255,255,0.08)';
+    const lw = palette.lineWidth || 0.914715;
+    ctx.strokeStyle = line;
+    ctx.lineWidth = lw;
+    ctx.fillStyle = line;
+    ctx.strokeRect(OFFSET_X, OFFSET_Y, PITCH_PX_W, PITCH_PX_H);
+
+    ctx.beginPath();
+    ctx.moveTo(CX, OFFSET_Y);
+    ctx.lineTo(CX, OFFSET_Y + PITCH_PX_H);
+    ctx.stroke();
+
+    // Centre circle + spot.
+    ctx.beginPath();
+    ctx.arc(CX, CY, CENTER_CIRCLE_R * PX_PER_M, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.arc(CX, CY, 2, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Penalty areas + arcs.
+    const paW = PENALTY_DEPTH * PX_PER_M;
+    const paH = PENALTY_WIDTH * PX_PER_M;
+    const paTop = (els.canvas.height - paH) / 2;
+    ctx.strokeRect(OFFSET_X, paTop, paW, paH);
+    ctx.strokeRect(OFFSET_X + PITCH_PX_W - paW, paTop, paW, paH);
+
+    // Goal areas.
+    const gaW = GOAL_AREA_DEPTH * PX_PER_M;
+    const gaH = GOAL_AREA_WIDTH * PX_PER_M;
+    const gaTop = (els.canvas.height - gaH) / 2;
+    ctx.strokeRect(OFFSET_X, gaTop, gaW, gaH);
+    ctx.strokeRect(OFFSET_X + PITCH_PX_W - gaW, gaTop, gaW, gaH);
+
+    // Penalty spots.
+    const spotL = OFFSET_X + PENALTY_SPOT * PX_PER_M;
+    const spotR = OFFSET_X + PITCH_PX_W - PENALTY_SPOT * PX_PER_M;
+    ctx.beginPath();
+    ctx.arc(spotL, CY, 2, 0, Math.PI * 2);
+    ctx.arc(spotR, CY, 2, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Penalty arcs (9.15m from spot, outside box).
+    const arcR = 9.15 * PX_PER_M;
+    ctx.beginPath();
+    ctx.arc(spotL, CY, arcR, -Math.PI / 2, Math.PI / 2);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.arc(spotR, CY, arcR, Math.PI / 2, (3 * Math.PI) / 2);
+    ctx.stroke();
+
+    // Corner arcs.
+    const cr = 1 * PX_PER_M;
+    [[OFFSET_X, OFFSET_Y, 0, Math.PI / 2],
+     [OFFSET_X + PITCH_PX_W, OFFSET_Y, Math.PI / 2, Math.PI],
+     [OFFSET_X, OFFSET_Y + PITCH_PX_H, -Math.PI / 2, 0],
+     [OFFSET_X + PITCH_PX_W, OFFSET_Y + PITCH_PX_H, Math.PI, (3 * Math.PI) / 2]].forEach(([cx, cy, a0, a1]) => {
+      ctx.beginPath();
+      ctx.arc(cx, cy, cr, a0, a1);
+      ctx.stroke();
+    });
+
+    // Goals: 5px x 26px washes at each end.
+    ctx.fillStyle = palette.goalWash || 'rgba(255,255,255,0.1)';
+    const goalDepthPx = Math.max(3, 5 * (PX_PER_M / 9));
+    const goalLenPx = 26 * (PX_PER_M / 9);
+    ctx.fillRect(OFFSET_X - goalDepthPx, CY - goalLenPx / 2, goalDepthPx, goalLenPx);
+    ctx.fillRect(OFFSET_X + PITCH_PX_W, CY - goalLenPx / 2, goalDepthPx, goalLenPx);
+
+    // Soft vignette, kept light so the Figma glow survives.
+    const grad = ctx.createRadialGradient(CX, CY, PITCH_PX_H * 0.35, CX, CY, Math.max(els.canvas.width, els.canvas.height) * 0.72);
+    grad.addColorStop(0, 'rgba(0,0,0,0)');
+    grad.addColorStop(1, 'rgba(0,0,0,0.28)');
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, els.canvas.width, els.canvas.height);
+    return;
+  }
   // Dark, desaturated base.
   ctx.fillStyle = palette.base;
   ctx.fillRect(0, 0, els.canvas.width, els.canvas.height);
@@ -503,11 +608,13 @@ const VARIANT_HINTS = Object.freeze({
   'heatmap:hexbin': 'Hexagonal density bins.',
   'analysis:classic': 'Carrier ring, threat label, press ring and hull.',
   'analysis:minimal': 'Carrier ring and hull without threat text or press ring.',
-  'carrierRing:comet': 'One blended white→pink conic band spinning around the carrier.',
-  'carrierRing:duo': 'White and pink tapered arcs counter-spinning with a bright cross.',
+  'carrierRing:comet': 'One blended team-colour conic band spinning around the carrier.',
+  'carrierRing:duo': 'Team-colour tapered arcs counter-spinning with a bright cross.',
+  'carrierRing:dotted': 'Rotating dotted ring in the team colour (lab only).',
   'field:classic': 'Dark, desaturated pitch.',
   'field:broadcast': 'Brighter broadcast green.',
   'field:night': 'Very dark night-match pitch.',
+  'field:figma': 'Football GEV Figma pitch: green gradient, dark stripes, grey nodes.',
 });
 
 function buildVariantLab() {
@@ -1694,7 +1801,6 @@ function render(dt = 0) {
     if (hiddenSlots.has(i)) continue;
     const p = players[i];
     const markerRadius = carrierEmphasis.get(`${p.team}:${p.shirt}`);
-    const markerScale = markerRadius / carrierEmphasis.base;
     // Ownership alpha for the possession ring: 0 at the base radius, 1 at full
     // carrier size, smooth-stepped so the old ring fades as the new one grows.
     // Not gated on the toggle, so switching Carrier grow off fades the ring out
@@ -1720,44 +1826,74 @@ function render(dt = 0) {
     }
     const [sx, sy] = toScreen(px, py);
 
-    // Soft foot shadow lifts the player off the pitch.
-    ctx.beginPath();
-    ctx.ellipse(sx + 1.2, sy + 1.8, 4.6 * markerScale, 2.6 * markerScale, 0, 0, Math.PI * 2);
-    ctx.fillStyle = 'rgba(0,0,0,0.28)';
-    ctx.fill();
+    // Football GEV Figma nodes: 10px dots, no numbers, no shadows.
+    // - Default outfield: grey #4F547D (home hollow, away solid).
+    // - GK on both ends: always team colour (blue home / pink away).
+    // - Ball carrier: always team colour + outer ring in the same colour.
+    const isGk = p.role === ROLE.GK || p.shirt === 1;
+    const isCarrier = ballCarrier && p.team === ballCarrier.team && p.shirt === ballCarrier.shirt;
+    const homeCol = '#52B4F5';
+    const awayCol = '#C861D1';
+    const teamCol = p.team === 0 ? homeCol : awayCol;
+    const greyCol = '#4F547D';
+    const special = isGk || isCarrier;
+    const figmaField = getVariant('field') === 'figma';
 
-    // Player marker: 7 px radius at this pitch scale, sized so two-digit
-    // shirts sit comfortably inside. The carrier eases a lot larger
-    // (12 px) so the man on the ball is readable at a glance.
-    ctx.beginPath();
-    ctx.arc(sx, sy, markerRadius, 0, Math.PI * 2);
-    ctx.fillStyle = p.team === 0 ? '#52B4F5' : '#C861D1';
-    ctx.fill();
-    ctx.strokeStyle = 'rgba(0,0,0,0.75)';
-    ctx.lineWidth = 1.2;
-    ctx.stroke();
+    if (!special && p.team === 0) {
+      // Home outfield: hollow grey outline (Figma Ellipse 24/25/27/28/29/30/26).
+      ctx.beginPath();
+      ctx.arc(sx, sy, markerRadius, 0, Math.PI * 2);
+      ctx.strokeStyle = greyCol;
+      ctx.lineWidth = 3;
+      ctx.stroke();
+    } else if (!special) {
+      // Away outfield: solid grey dot (Figma Ellipse 31/32/39/35/36/37/38/33/34).
+      ctx.beginPath();
+      ctx.arc(sx, sy, markerRadius, 0, Math.PI * 2);
+      ctx.fillStyle = greyCol;
+      ctx.fill();
+    } else if (isCarrier) {
+      // Carrier: solid team colour + Figma halo + outer circular border.
+      // Halo: 16px circle, 2px border at 10% team colour (Ellipse 29).
+      ctx.beginPath();
+      ctx.arc(sx, sy, markerRadius + CARRIER_RING_GAP, 0, Math.PI * 2);
+      ctx.strokeStyle = p.team === 0 ? 'rgba(82,180,245,0.1)' : 'rgba(200,97,209,0.4)';
+      ctx.lineWidth = 2;
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.arc(sx, sy, markerRadius, 0, Math.PI * 2);
+      ctx.fillStyle = teamCol;
+      ctx.fill();
+    } else {
+      // GK without the ball: solid team colour only, no halo, no ring.
+      ctx.beginPath();
+      ctx.arc(sx, sy, markerRadius, 0, Math.PI * 2);
+      ctx.fillStyle = teamCol;
+      ctx.fill();
+    }
 
-    // GK marker: small gloves ring.
-    // (role not in player snapshot here; skip to keep simple)
-
-    ctx.fillStyle = '#ffffff';
-    ctx.font = 'bold 9px Manrope, ui-sans-serif, sans-serif';
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillText(String(p.shirt), sx, sy);
-
-    // Possession ring: white/pink band that rides the eased carrier radius, so
-    // it grows with the body and fades out as possession hands over.
-    if (ringAlpha > 0.01) {
-      const teamRgb = TEAM_RGB[p.team === 1 ? 'away' : 'home'].join(',');
-      drawCarrierRing(ctx, sx, sy, {
-        radius: markerRadius + CARRIER_RING_GAP,
-        width: CARRIER_RING_WIDTH,
-        alpha: ringAlpha,
-        angle: reduceMotion ? 0.9 : carrierRing.angle,
-        variant: ringVariant,
-        rgb: teamRgb,
-      });
+    // Possession ring: team-colour outer circular border for the carrier only.
+    // Figma = static 2px solid ring; other fields keep the lab ring variant.
+    if (isCarrier && ringAlpha > 0.01) {
+      if (figmaField) {
+        ctx.beginPath();
+        ctx.arc(sx, sy, markerRadius + CARRIER_RING_GAP, 0, Math.PI * 2);
+        ctx.strokeStyle = teamCol;
+        ctx.lineWidth = CARRIER_RING_WIDTH;
+        ctx.globalAlpha = Math.max(ringAlpha, 0.85);
+        ctx.stroke();
+        ctx.globalAlpha = 1;
+      } else {
+        const teamRgb = TEAM_RGB[p.team === 1 ? 'away' : 'home'].join(',');
+        drawCarrierRing(ctx, sx, sy, {
+          radius: markerRadius + CARRIER_RING_GAP,
+          width: CARRIER_RING_WIDTH,
+          alpha: Math.max(ringAlpha, 0.85),
+          angle: reduceMotion ? 0.9 : carrierRing.angle,
+          variant: ringVariant,
+          rgb: teamRgb,
+        });
+      }
     }
   }
 
@@ -1781,7 +1917,7 @@ function render(dt = 0) {
     ctx.fill();
   }
 
-  const ballRadius = 4.2 + Math.min(bz * 0.6, 3.0);
+  const ballRadius = 3.5 + Math.min(bz * 0.6, 3.0);
   ctx.save();
   ctx.shadowColor = 'rgba(255,255,255,0.55)';
   ctx.shadowBlur = 8;
@@ -1792,8 +1928,8 @@ function render(dt = 0) {
   ctx.restore();
   ctx.beginPath();
   ctx.arc(bsx, bsy - bz * 3.0, ballRadius, 0, Math.PI * 2);
-  ctx.strokeStyle = '#171437';
-  ctx.lineWidth = 1.2;
+  ctx.strokeStyle = '#060310';
+  ctx.lineWidth = 1;
   ctx.stroke();
 
   drawHoveredPlayer();
