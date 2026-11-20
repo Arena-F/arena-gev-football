@@ -285,7 +285,7 @@ export function createPlayerPanel(shell, callbacks = {}) {
     const H = canvas.height;
     c.clearRect(0, 0, W, H);
     // Mini pitch, same dressing as the sidebar minimap.
-    c.fillStyle = '#1e3822';
+    c.fillStyle = '#221B49';
     c.fillRect(0, 0, W, H);
     c.strokeStyle = 'rgba(255,255,255,0.35)';
     c.lineWidth = 1;
@@ -300,7 +300,7 @@ export function createPlayerPanel(shell, callbacks = {}) {
     const my = (y) => pad + ((PITCH_H - y) / (PITCH_H * 2)) * (H - pad * 2);
 
     // Zone grid.
-    c.strokeStyle = 'rgba(233,242,255,0.18)';
+    c.strokeStyle = 'rgba(239,248,254,0.18)';
     for (let z = 1; z <= 12; z++) {
       const r = zoneWorldRect(z, teamSide);
       const x0 = mx(r.x0);
@@ -318,7 +318,7 @@ export function createPlayerPanel(shell, callbacks = {}) {
       const cy = my((r.y0 + r.y1) / 2);
       const radius = 6 + 16 * Math.sqrt(zone.attempts / maxAttempts);
       const success = zone.success ?? 0;
-      const hue = 120 * Math.min(1, Math.max(0, success));
+      const hue = 145 * Math.min(1, Math.max(0, success));
       c.beginPath();
       c.arc(cx, cy, radius, 0, Math.PI * 2);
       c.fillStyle = `hsla(${hue.toFixed(0)}, 75%, 50%, 0.55)`;
@@ -329,13 +329,13 @@ export function createPlayerPanel(shell, callbacks = {}) {
       c.stroke();
       if (selectedZone === i + 1) {
         c.lineWidth = 2;
-        c.strokeStyle = '#ffbe5a';
+        c.strokeStyle = '#C861D1';
         c.beginPath();
         c.arc(cx, cy, radius + 3, 0, Math.PI * 2);
         c.stroke();
       }
-      c.fillStyle = 'rgba(13,17,23,0.9)';
-      c.font = 'bold 9px ui-sans-serif, sans-serif';
+      c.fillStyle = 'rgba(23,20,55,0.9)';
+      c.font = 'bold 9px Manrope, ui-sans-serif, sans-serif';
       c.textAlign = 'center';
       c.textBaseline = 'middle';
       c.fillText(String(zone.attempts), cx, cy);
@@ -408,7 +408,7 @@ export function createPlayerPanel(shell, callbacks = {}) {
     const X = (t) => 6 + (t / maxT) * (W - 12);
 
     // Half-time break marker.
-    c.strokeStyle = 'rgba(48,54,61,0.9)';
+    c.strokeStyle = 'rgba(81,70,138,0.9)';
     c.lineWidth = 1;
     c.beginPath();
     c.moveTo(0, H / 2);
@@ -421,14 +421,14 @@ export function createPlayerPanel(shell, callbacks = {}) {
     c.stroke();
     c.setLineDash([]);
 
-    c.fillStyle = 'rgba(139,148,158,0.9)';
-    c.font = '9px ui-sans-serif, sans-serif';
+    c.fillStyle = 'rgba(115,115,115,0.9)';
+    c.font = '9px Manrope, ui-sans-serif, sans-serif';
     c.textAlign = 'center';
     c.textBaseline = 'top';
     for (let m = 0; m <= 90; m += 15) {
       const x = X(m * 60);
       c.fillText(String(m), x, H - 11);
-      c.strokeStyle = 'rgba(48,54,61,0.9)';
+      c.strokeStyle = 'rgba(81,70,138,0.9)';
       c.beginPath();
       c.moveTo(x, H / 2 - 3);
       c.lineTo(x, H / 2 + 3);
@@ -445,11 +445,11 @@ export function createPlayerPanel(shell, callbacks = {}) {
       c.beginPath();
       c.arc(x, H / 2, r, 0, Math.PI * 2);
       if (!isMatch) {
-        c.fillStyle = 'rgba(84,91,100,0.45)';
+        c.fillStyle = 'rgba(81,70,138,0.45)';
         c.fill();
         continue;
       }
-      c.fillStyle = d.ok ? 'rgba(80,220,140,0.95)' : 'rgba(255,92,92,0.95)';
+      c.fillStyle = d.ok ? 'rgba(82,180,76,0.95)' : 'rgba(214,58,63,0.95)';
       c.fill();
     }
     return { X, maxT };

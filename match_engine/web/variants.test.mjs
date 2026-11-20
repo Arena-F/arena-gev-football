@@ -7,6 +7,11 @@ test('variant catalog covers every analytical layer', () => {
     assert.ok(VARIANTS[key]?.length >= 2, key);
     if (key !== 'heatmap' && key !== 'network') assert.equal(VARIANTS[key][0].id, 'classic');
   }
+  assert.ok(VARIANTS.carrierRing?.length >= 2, 'carrierRing');
+  assert.ok(VARIANTS.carrierRing.some((v) => v.id === 'comet'));
+  assert.ok(VARIANTS.carrierRing.some((v) => v.id === 'duo'));
+  assert.ok(VARIANTS.carrierRing.some((v) => v.id === 'dotted'));
+  assert.ok(VARIANTS.field.some((v) => v.id === 'figma'), 'Football GEV figma field');
 });
 
 test('variantsOf returns the catalog or empty', () => {
@@ -18,10 +23,11 @@ test('recommended defaults are the softer, labeled variants', () => {
   assert.equal(getVariant('visionCone'), 'soft-wedge');
   assert.equal(getVariant('passLanes'), 'corridor');
   assert.equal(getVariant('runChannels'), 'lanes');
-  assert.equal(getVariant('network'), 'outlet');
+  assert.equal(getVariant('network'), 'mesh');
   assert.equal(getVariant('heatmap'), 'raster');
   assert.equal(getVariant('analysis'), 'classic');
-  assert.equal(getVariant('field'), 'classic');
+  assert.equal(getVariant('carrierRing'), 'comet');
+  assert.equal(getVariant('field'), 'figma');
 });
 
 test('setVariant validates and persists selection', () => {
@@ -30,6 +36,9 @@ test('setVariant validates and persists selection', () => {
   assert.equal(setVariant('passLanes', 'nope'), false);
   assert.equal(getVariant('passLanes'), 'classic');
   assert.equal(setVariant('passLanes', 'classic'), false);
+  assert.equal(setVariant('carrierRing', 'duo'), true);
+  assert.equal(getVariant('carrierRing'), 'duo');
   resetVariants();
   assert.equal(getVariant('passLanes'), 'corridor');
+  assert.equal(getVariant('carrierRing'), 'comet');
 });

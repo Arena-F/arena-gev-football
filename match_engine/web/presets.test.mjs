@@ -6,8 +6,14 @@ test('presets cover coherent layer sets', () => {
   assert.deepEqual(presetKeys(), ['broadcast', 'tactical', 'clean', 'all']);
   assert.ok(PRESETS.broadcast.includes('heatmap'));
   assert.ok(PRESETS.tactical.includes('passingLanes'));
+  // The motion polish rides along with every preset that shows the pitch
+  // analysis, and stays off in Clean like every other layer.
+  assert.ok(PRESETS.broadcast.includes('ballTrail'));
+  assert.ok(PRESETS.broadcast.includes('carrierGrow'));
+  assert.ok(PRESETS.tactical.includes('ballTrail'));
+  assert.ok(PRESETS.tactical.includes('carrierGrow'));
   assert.equal(PRESETS.clean.length, 0);
-  assert.equal(PRESETS.all.length, 8);
+  assert.equal(PRESETS.all.length, 10);
 });
 
 test('preset names validate', () => {
